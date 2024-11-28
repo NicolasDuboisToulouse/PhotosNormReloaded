@@ -1,0 +1,7 @@
+[package]
+name = "PhotoNorm"
+edition = "2021"
+
+[dependencies]
+infer = "0.16.0"
+little_exif = "0.6.2"
