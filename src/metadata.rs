@@ -1,3 +1,4 @@
+use image::image_dimensions;
 use little_exif::metadata::Metadata as LittleMetadata;
 use std::{
     io::Error,
@@ -7,6 +8,7 @@ use std::{
 pub struct Metadata {
     path: PathBuf,
     litte_metadata: LittleMetadata,
+    dimentions: (u32, u32),
 }
 
 impl Metadata {
@@ -23,10 +25,25 @@ impl Metadata {
             return Err(Error::other("No EXIF info in this file."));
         }
 
+        let Ok(dimentions) = image_dimensions(path) else {
+            return Err(Error::other("Cannot read image dimentions."));
+        };
+
         Ok(Metadata {
             path: PathBuf::from(path),
             litte_metadata,
+            dimentions,
         })
+    }
+
+    pub fn get_path(&self) -> &Path {
+        self.path.as_path()
+    }
+    pub fn width(&self) -> u32 {
+        self.dimentions.0
+    }
+    pub fn height(&self) -> u32 {
+        self.dimentions.1
     }
 }
 
@@ -44,5 +61,15 @@ mod tests {
         assert!(result.is_err());
         let result = Metadata::new(Path::new("tests/no_exif.png"));
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn simple_file() {
+        let result = Metadata::new(Path::new("tests/valid.jpg"));
+        assert!(result.is_ok());
+        let metadata = result.unwrap();
+        assert_eq!(metadata.get_path(), Path::new("tests/valid.jpg"));
+        assert_eq!(metadata.width(), 2048);
+        assert_eq!(metadata.height(), 1536);
     }
 }
