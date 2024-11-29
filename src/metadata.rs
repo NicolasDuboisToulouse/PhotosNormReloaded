@@ -10,8 +10,15 @@ use std::{
     io::Error,
     path::{Path, PathBuf},
 };
+use tag::{Tag, TagList};
 
 mod camera_info;
+mod tag;
+
+/// Modifed field by set_xxx functions
+struct MetadataModified {
+    description: Option<String>,
+}
 
 pub struct Metadata {
     path: PathBuf,
@@ -20,6 +27,7 @@ pub struct Metadata {
     date: Option<NaiveDateTime>,
     description: Option<String>,
     camera_info: CameraInfo,
+    modified: MetadataModified,
 }
 
 impl Metadata {
@@ -150,6 +158,7 @@ impl Metadata {
             date,
             description,
             camera_info,
+            modified: MetadataModified { description: None },
         })
     }
 
@@ -164,13 +173,46 @@ impl Metadata {
         self.date
     }
     pub fn exif_date(&self) -> Option<String> {
-        self.date.map(|d| d.format("%Y:%m:%d %H:%M:%S").to_string())
+        self.date()
+            .map(|d| d.format("%Y:%m:%d %H:%M:%S").to_string())
     }
     pub fn description(&self) -> Option<String> {
-        self.description.clone()
+        self.modified
+            .description
+            .clone()
+            .or(self.description.clone())
     }
     pub fn camera_info(&self) -> &CameraInfo {
         &self.camera_info
+    }
+
+    /// Set description. Note: file will not modified unless you call save().
+    pub fn set_description(&mut self, description: &str) {
+        self.modified.description = Some(description.to_string());
+    }
+
+    /// Save tags modified by set_xxx function
+    /// Return the slice of modified tag
+    pub fn save(&mut self) -> Result<TagList, Error> {
+        let mut modified_tags: TagList = TagList::new();
+
+        if self.modified.description.is_some() {
+            modified_tags.push(Tag::Description);
+            self.litte_metadata.set_tag(ExifTag::ImageDescription(
+                self.modified.description.clone().expect("Unexpected Error"),
+            ));
+        }
+
+        // Save tags and update content
+        if !modified_tags.is_empty() {
+            self.litte_metadata.write_to_file(&self.path)?;
+            if self.modified.description.is_some() {
+                self.description = self.modified.description.clone();
+                self.modified.description = None;
+            }
+        }
+
+        Ok(modified_tags)
     }
 
     // Read a tag as a string
@@ -242,6 +284,8 @@ impl Metadata {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use chrono::NaiveDate;
 
     use super::*;
@@ -263,7 +307,7 @@ mod tests {
         let result = Metadata::new(Path::new("tests/all_tags.jpg"));
         assert!(result.is_ok());
         let metadata = result.unwrap();
-        assert_eq!(metadata.path(), Path::new("tests/all_tags.jpg"));
+        assert_eq!(metadata.path, Path::new("tests/all_tags.jpg"));
         assert_eq!(metadata.width(), 2048);
         assert_eq!(metadata.height(), 1536);
         assert_eq!(
@@ -333,5 +377,32 @@ mod tests {
         assert!(result.is_ok());
         let metadata = result.unwrap();
         assert_eq!(metadata.camera_info().flash, None);
+    }
+
+    #[test]
+    fn update_tags() {
+        let tmpdir = tempfile::tempdir().unwrap();
+        let tmp_file_path = tmpdir.path().join("photo_norm_test.jpg");
+        assert!(fs::copy(Path::new("tests/all_tags.jpg"), &tmp_file_path,).is_ok());
+
+        // Load
+        let result = Metadata::new(&tmp_file_path);
+        assert!(result.is_ok());
+        let mut metadata = result.unwrap();
+
+        // Modify tags
+        metadata.set_description("Description 1");
+        assert_eq!(metadata.description(), Some("Description 1".to_string()));
+
+        // Save
+        let tags = metadata.save();
+        let expected = TagList::new_from_slice(&[Tag::Description]);
+        assert_eq!(tags.ok(), Some(expected));
+
+        // Reload and check tags
+        let result = Metadata::new(&tmp_file_path);
+        assert!(result.is_ok());
+        let metadata = result.unwrap();
+        assert_eq!(metadata.description(), Some("Description 1".to_string()));
     }
 }

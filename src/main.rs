@@ -14,8 +14,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Print some metadata from provided files
+    /// info: Print some metadata from provided files
     Info(InfoArgs),
+
+    /// set: Update tags
+    Set(SetArgs),
 }
 
 #[derive(Args)]
@@ -23,6 +26,27 @@ struct InfoArgs {
     /// images to load
     #[clap(required = true, value_name = "FILES")]
     images: Vec<std::path::PathBuf>,
+}
+
+#[derive(Args)]
+struct SetArgs {
+    #[command(flatten)]
+    setters: SetArgsSetters,
+
+    /// Allows to set same tag values to several images
+    #[arg(short, long)]
+    force: bool,
+
+    /// images to update
+    #[clap(required = true, value_name = "FILES")]
+    images: Vec<std::path::PathBuf>,
+}
+#[derive(Args)]
+#[group(required = true, multiple = true)]
+struct SetArgsSetters {
+    /// Update ImageDescription tag
+    #[arg(short, long)]
+    description: Option<String>,
 }
 
 macro_rules! print_table {
@@ -36,6 +60,12 @@ fn main() -> Result<(), std::io::Error> {
 
     let images = match &args.command {
         Commands::Info(args) => &args.images,
+        Commands::Set(args) => {
+            if !args.force && args.images.len() != 1 {
+                panic!("Set same tag values to several images is not allowed unless you use --force option.");
+            }
+            &args.images
+        }
     };
 
     for image in images.iter() {
@@ -48,24 +78,50 @@ fn main() -> Result<(), std::io::Error> {
             continue;
         }
 
-        let metadata = result.unwrap();
-        print_table!(
-            "Dimensions:",
-            format!("{}, {}", metadata.width(), metadata.height())
-        );
-        print_table!(
-            "Date:",
-            metadata
-                .exif_date()
-                .unwrap_or("{No exif date!}".to_string())
-        );
-        print_table!(
-            "Desription:",
-            metadata
-                .description()
-                .unwrap_or("{No exif description!}".to_string())
-        );
-        print_table!("Camera:", metadata.camera_info());
+        let mut metadata = result.unwrap();
+
+        match &args.command {
+            //
+            // Command info
+            //
+            Commands::Info(_) => {
+                print_table!(
+                    "Dimensions:",
+                    format!("{}, {}", metadata.width(), metadata.height())
+                );
+                print_table!(
+                    "Date:",
+                    metadata
+                        .exif_date()
+                        .unwrap_or("{No exif date!}".to_string())
+                );
+                print_table!(
+                    "Desription:",
+                    metadata
+                        .description()
+                        .unwrap_or("{No exif description!}".to_string())
+                );
+                print_table!("Camera:", metadata.camera_info());
+            }
+
+            //
+            // Command set
+            //
+            Commands::Set(args) => {
+                if args.setters.description.is_some() {
+                    metadata.set_description(args.setters.description.as_ref().unwrap());
+                }
+                match metadata.save() {
+                    Err(e) => {
+                        print_table!("Error!", e);
+                    }
+                    Ok(tags) => {
+                        print_table!("Updated tags:", tags);
+                    }
+                }
+            }
+        }
+
         println!();
     }
 
