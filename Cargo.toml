@@ -4,6 +4,7 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.38"
+clap = { version = "4.5.21", features = ["derive"]}
 image = "0.25.5"
 infer = "0.16.0"
 little_exif = "0.6.2"
