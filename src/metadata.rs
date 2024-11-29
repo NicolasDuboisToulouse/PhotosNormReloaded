@@ -1,5 +1,8 @@
+use chrono::NaiveDateTime;
 use image::image_dimensions;
-use little_exif::metadata::Metadata as LittleMetadata;
+use little_exif::{
+    exif_tag::ExifTag, metadata::Metadata as LittleMetadata, u8conversion::U8conversion,
+};
 use std::{
     io::Error,
     path::{Path, PathBuf},
@@ -9,10 +12,12 @@ pub struct Metadata {
     path: PathBuf,
     litte_metadata: LittleMetadata,
     dimentions: (u32, u32),
+    date: Option<NaiveDateTime>,
 }
 
 impl Metadata {
     pub fn new(path: &Path) -> Result<Metadata, Error> {
+        // Check file type because little_exif will panic on these errors
         let Some(kind) = infer::get_from_path(path)? else {
             return Err(Error::other("Unknown file type."));
         };
@@ -20,23 +25,36 @@ impl Metadata {
             return Err(Error::other("Unsuported file type."));
         }
 
+        // Load dimention from image data (not from exif data)
+        let Ok(dimentions) = image_dimensions(path) else {
+            return Err(Error::other("Cannot read image dimentions."));
+        };
+
+        // Load little_exif metadata
         let litte_metadata = LittleMetadata::new_from_path(path)?;
         if litte_metadata.into_iter().count() == 0 {
             return Err(Error::other("No EXIF info in this file."));
         }
 
-        let Ok(dimentions) = image_dimensions(path) else {
-            return Err(Error::other("Cannot read image dimentions."));
+        let date =
+            Self::get_string_tag(&litte_metadata, &ExifTag::DateTimeOriginal(String::new())).or(
+                Self::get_string_tag(&litte_metadata, &ExifTag::CreateDate(String::new())),
+            );
+        let date = match date {
+            None => None,
+            Some(str_date) => NaiveDateTime::parse_from_str(&str_date, "%Y:%m:%d %H:%M:%S").ok(),
         };
 
         Ok(Metadata {
             path: PathBuf::from(path),
             litte_metadata,
             dimentions,
+            date,
         })
     }
 
-    pub fn get_path(&self) -> &Path {
+    // Accessors
+    pub fn path(&self) -> &Path {
         self.path.as_path()
     }
     pub fn width(&self) -> u32 {
@@ -45,10 +63,25 @@ impl Metadata {
     pub fn height(&self) -> u32 {
         self.dimentions.1
     }
+    pub fn date(&self) -> Option<NaiveDateTime> {
+        self.date
+    }
+    pub fn exif_date(&self) -> Option<String> {
+        self.date.map(|d| d.format("%Y:%m:%d %H:%M:%S").to_string())
+    }
+
+    // Read a tag as a string
+    fn get_string_tag(litte_metadata: &LittleMetadata, tag: &ExifTag) -> Option<String> {
+        let tag = litte_metadata.get_tag(tag).next()?;
+        let endian = litte_metadata.get_endian();
+        Some(String::from_u8_vec(&tag.value_as_u8_vec(&endian), &endian))
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use chrono::NaiveDate;
+
     use super::*;
 
     #[test]
@@ -68,8 +101,18 @@ mod tests {
         let result = Metadata::new(Path::new("tests/valid.jpg"));
         assert!(result.is_ok());
         let metadata = result.unwrap();
-        assert_eq!(metadata.get_path(), Path::new("tests/valid.jpg"));
+        assert_eq!(metadata.path(), Path::new("tests/valid.jpg"));
         assert_eq!(metadata.width(), 2048);
         assert_eq!(metadata.height(), 1536);
+        assert_eq!(
+            metadata.date(),
+            NaiveDate::from_ymd_opt(2006, 10, 29)
+                .unwrap()
+                .and_hms_opt(16, 27, 21)
+        );
+        assert_eq!(
+            metadata.exif_date(),
+            Some("2006:10:29 16:27:21".to_string())
+        );
     }
 }
