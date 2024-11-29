@@ -37,6 +37,7 @@ fn main() -> Result<(), std::io::Error> {
             .description()
             .unwrap_or("{No exif description!}".to_string())
     );
+    println!("Camera: {}", metadata.camera_info());
 
     Ok(())
 }
