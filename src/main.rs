@@ -27,7 +27,15 @@ fn main() -> Result<(), std::io::Error> {
     println!("Dimensions: {}, {}", metadata.width(), metadata.height());
     println!(
         "Date: {}",
-        metadata.exif_date().unwrap_or("No date!".to_string())
+        metadata
+            .exif_date()
+            .unwrap_or("{No exif date!}".to_string())
+    );
+    println!(
+        "Desription: {}",
+        metadata
+            .description()
+            .unwrap_or("{No exif description!}".to_string())
     );
 
     Ok(())

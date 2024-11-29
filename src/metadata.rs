@@ -13,6 +13,7 @@ pub struct Metadata {
     litte_metadata: LittleMetadata,
     dimentions: (u32, u32),
     date: Option<NaiveDateTime>,
+    description: Option<String>,
 }
 
 impl Metadata {
@@ -45,11 +46,15 @@ impl Metadata {
             Some(str_date) => NaiveDateTime::parse_from_str(&str_date, "%Y:%m:%d %H:%M:%S").ok(),
         };
 
+        let description =
+            Self::get_string_tag(&litte_metadata, &ExifTag::ImageDescription(String::new()));
+
         Ok(Metadata {
             path: PathBuf::from(path),
             litte_metadata,
             dimentions,
             date,
+            description,
         })
     }
 
@@ -68,6 +73,9 @@ impl Metadata {
     }
     pub fn exif_date(&self) -> Option<String> {
         self.date.map(|d| d.format("%Y:%m:%d %H:%M:%S").to_string())
+    }
+    pub fn description(&self) -> Option<String> {
+        self.description.clone()
     }
 
     // Read a tag as a string
@@ -97,11 +105,11 @@ mod tests {
     }
 
     #[test]
-    fn simple_file() {
-        let result = Metadata::new(Path::new("tests/valid.jpg"));
+    fn file_all_tags() {
+        let result = Metadata::new(Path::new("tests/all_tags.jpg"));
         assert!(result.is_ok());
         let metadata = result.unwrap();
-        assert_eq!(metadata.path(), Path::new("tests/valid.jpg"));
+        assert_eq!(metadata.path(), Path::new("tests/all_tags.jpg"));
         assert_eq!(metadata.width(), 2048);
         assert_eq!(metadata.height(), 1536);
         assert_eq!(
@@ -114,5 +122,19 @@ mod tests {
             metadata.exif_date(),
             Some("2006:10:29 16:27:21".to_string())
         );
+        assert_eq!(metadata.description(), Some("A fun picture!".to_string()));
+    }
+
+    #[test]
+    fn file_missing_tags() {
+        let result = Metadata::new(Path::new("tests/no_date.jpg"));
+        assert!(result.is_ok());
+        let metadata = result.unwrap();
+        assert_eq!(metadata.date(), None);
+
+        let result = Metadata::new(Path::new("tests/no_description.jpg"));
+        assert!(result.is_ok());
+        let metadata = result.unwrap();
+        assert_eq!(metadata.description(), None);
     }
 }
