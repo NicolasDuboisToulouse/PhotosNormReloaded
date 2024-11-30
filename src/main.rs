@@ -1,43 +1,73 @@
-use clap::Parser;
+use clap::{Args, Parser, Subcommand};
 use metadata::Metadata;
-use std::io::Error;
 
 mod metadata;
 
 #[derive(Parser)]
+#[command(version, about, long_about = None)]
+#[command(propagate_version = true)]
+#[command(flatten_help = true)]
 struct Cli {
-    /// image to load
-    image: std::path::PathBuf,
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Print some metadata from provided files
+    Info(InfoArgs),
+}
+
+#[derive(Args)]
+struct InfoArgs {
+    /// images to load
+    #[clap(required = true, value_name = "FILES")]
+    images: Vec<std::path::PathBuf>,
+}
+
+macro_rules! print_table {
+    ($input1:expr, $input2:expr) => {
+        println!("{0:<15} {1:}", $input1, $input2);
+    };
 }
 
 fn main() -> Result<(), std::io::Error> {
     let args = Cli::parse();
 
-    let result = Metadata::new(&args.image);
+    let images = match &args.command {
+        Commands::Info(args) => &args.images,
+    };
 
-    if result.is_err() {
-        return Err(Error::other(format!(
-            "Cannot parse file '{}'",
-            args.image.display()
-        )));
+    for image in images.iter() {
+        print_table!("File:", image.display());
+
+        let result = Metadata::new(image);
+        if result.is_err() {
+            print_table!("Error!", result.err().expect("Unexpected error."));
+            println!();
+            continue;
+        }
+
+        let metadata = result.unwrap();
+        print_table!(
+            "Dimensions:",
+            format!("{}, {}", metadata.width(), metadata.height())
+        );
+        print_table!(
+            "Date:",
+            metadata
+                .exif_date()
+                .unwrap_or("{No exif date!}".to_string())
+        );
+        print_table!(
+            "Desription:",
+            metadata
+                .description()
+                .unwrap_or("{No exif description!}".to_string())
+        );
+        print_table!("Camera:", metadata.camera_info());
+        println!();
     }
-
-    let metadata = result.unwrap();
-    println!("File: {}", metadata.path().display());
-    println!("Dimensions: {}, {}", metadata.width(), metadata.height());
-    println!(
-        "Date: {}",
-        metadata
-            .exif_date()
-            .unwrap_or("{No exif date!}".to_string())
-    );
-    println!(
-        "Desription: {}",
-        metadata
-            .description()
-            .unwrap_or("{No exif description!}".to_string())
-    );
-    println!("Camera: {}", metadata.camera_info());
 
     Ok(())
 }

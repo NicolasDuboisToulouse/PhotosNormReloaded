@@ -190,9 +190,6 @@ impl Metadata {
     }
 
     // Accessors
-    pub fn path(&self) -> &Path {
-        self.path.as_path()
-    }
     pub fn width(&self) -> u32 {
         self.dimentions.0
     }

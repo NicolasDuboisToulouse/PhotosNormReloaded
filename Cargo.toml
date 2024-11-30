@@ -1,6 +1,11 @@
 [package]
 name = "PhotoNorm"
+version = "0.0.1"
 edition = "2021"
+description = "Automatic rotate, rename and exif fix"
+readme = "README.md"
+license-file = "LICENSE"
+repository = "https://github.com/NicolasDuboisToulouse/PhotosNormReloaded"
 
 [dependencies]
 chrono = "0.4.38"

@@ -1,4 +1,4 @@
 # PhotosNorm
-Automatic rotate, exif fix and rename photo
+Automatic rotate, rename and exif fix
 
 *Work in progress*
