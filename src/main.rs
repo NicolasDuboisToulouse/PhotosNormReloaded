@@ -1,8 +1,13 @@
+use std::fs;
+
 use crate::metadata::tag::DisplayEnumSet;
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, CommandFactory, Parser, Subcommand};
+use clap_markdown::MarkdownOptions;
 use metadata::Metadata;
 
 mod metadata;
+
+const CARGO_PKG_NAME: &str = env!("CARGO_PKG_NAME");
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -20,6 +25,9 @@ enum Commands {
 
     /// set: Update tags
     Set(SetArgs),
+
+    #[command(hide = true)]
+    GenerateReadmeMd,
 }
 
 #[derive(Args)]
@@ -70,6 +78,17 @@ fn main() -> Result<(), std::io::Error> {
                 panic!("Set same tag values to several images is not allowed unless you use --force option.");
             }
             &args.images
+        }
+        Commands::GenerateReadmeMd => {
+            let readme_text = clap_markdown::help_markdown_command_custom(
+                &Cli::command(),
+                &MarkdownOptions::new()
+                    .title(CARGO_PKG_NAME.to_string())
+                    .show_footer(false)
+                    .show_table_of_contents(true),
+            );
+            fs::write("README.md", readme_text).expect("Unable to write README.md");
+            return Ok(());
         }
     };
 
@@ -136,6 +155,9 @@ fn main() -> Result<(), std::io::Error> {
                         print_table!("Updated tags:", tags.to_string_coma());
                     }
                 }
+            }
+            Commands::GenerateReadmeMd => {
+                panic!("Cannot reach this code!");
             }
         }
 
