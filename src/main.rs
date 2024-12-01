@@ -1,3 +1,4 @@
+use crate::metadata::tag::DisplayEnumSet;
 use clap::{Args, Parser, Subcommand};
 use metadata::Metadata;
 
@@ -116,7 +117,7 @@ fn main() -> Result<(), std::io::Error> {
                         print_table!("Error!", e);
                     }
                     Ok(tags) => {
-                        print_table!("Updated tags:", tags);
+                        print_table!("Updated tags:", tags.to_string_coma());
                     }
                 }
             }

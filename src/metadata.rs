@@ -1,5 +1,6 @@
 use camera_info::CameraInfo;
 use chrono::NaiveDateTime;
+use enumset::EnumSet;
 use image::image_dimensions;
 use little_exif::rational::iR64;
 use little_exif::{
@@ -10,10 +11,10 @@ use std::{
     io::Error,
     path::{Path, PathBuf},
 };
-use tag::{Tag, TagList};
+use tag::Tag;
 
-mod camera_info;
-mod tag;
+pub mod camera_info;
+pub mod tag;
 
 /// Modifed field by set_xxx functions
 struct MetadataModified {
@@ -193,11 +194,11 @@ impl Metadata {
 
     /// Save tags modified by set_xxx function
     /// Return the slice of modified tag
-    pub fn save(&mut self) -> Result<TagList, Error> {
-        let mut modified_tags: TagList = TagList::new();
+    pub fn save(&mut self) -> Result<EnumSet<Tag>, Error> {
+        let mut modified_tags: EnumSet<Tag> = EnumSet::new();
 
         if self.modified.description.is_some() {
-            modified_tags.push(Tag::Description);
+            modified_tags.insert(Tag::Description);
             self.litte_metadata.set_tag(ExifTag::ImageDescription(
                 self.modified.description.clone().expect("Unexpected Error"),
             ));
@@ -287,6 +288,7 @@ mod tests {
     use std::fs;
 
     use chrono::NaiveDate;
+    use enumset::enum_set;
 
     use super::*;
 
@@ -396,7 +398,7 @@ mod tests {
 
         // Save
         let tags = metadata.save();
-        let expected = TagList::new_from_slice(&[Tag::Description]);
+        let expected = enum_set!(Tag::Description);
         assert_eq!(tags.ok(), Some(expected));
 
         // Reload and check tags

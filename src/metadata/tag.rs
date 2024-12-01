@@ -1,8 +1,10 @@
+use enumset::EnumSet;
+use enumset::EnumSetType;
 use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(EnumSetType, Debug)]
 pub enum Tag {
     Description,
 }
@@ -13,43 +15,19 @@ impl Display for Tag {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct TagList {
-    tags: Vec<Tag>,
+pub trait DisplayEnumSet {
+    fn to_string_coma(&self) -> String;
 }
 
-impl TagList {
-    pub fn new() -> TagList {
-        TagList { tags: Vec::new() }
-    }
-
-    #[allow(dead_code)]
-    pub fn new_from_slice(vec: &[Tag]) -> TagList {
-        TagList { tags: vec.to_vec() }
-    }
-
-    pub fn push(&mut self, tag: Tag) {
-        self.tags.push(tag);
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.tags.is_empty()
-    }
-}
-impl Display for TagList {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+impl DisplayEnumSet for EnumSet<Tag> {
+    fn to_string_coma(&self) -> String {
         if self.is_empty() {
-            write!(f, "None0")
+            "None".to_string()
         } else {
-            write!(
-                f,
-                "{}",
-                self.tags
-                    .iter()
-                    .map(|t| t.to_string())
-                    .collect::<Vec<_>>()
-                    .join(",")
-            )
+            self.iter()
+                .map(|t| t.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
         }
     }
 }
