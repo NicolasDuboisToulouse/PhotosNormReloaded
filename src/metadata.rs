@@ -16,11 +16,6 @@ use tag::Tag;
 pub mod camera_info;
 pub mod tag;
 
-/// Modifed field by set_xxx functions
-struct MetadataModified {
-    description: Option<String>,
-}
-
 pub struct Metadata {
     path: PathBuf,
     litte_metadata: LittleMetadata,
@@ -28,7 +23,7 @@ pub struct Metadata {
     date: Option<NaiveDateTime>,
     description: Option<String>,
     camera_info: CameraInfo,
-    modified: MetadataModified,
+    modified_tags: EnumSet<Tag>,
 }
 
 impl Metadata {
@@ -159,7 +154,7 @@ impl Metadata {
             date,
             description,
             camera_info,
-            modified: MetadataModified { description: None },
+            modified_tags: EnumSet::empty(),
         })
     }
 
@@ -178,10 +173,7 @@ impl Metadata {
             .map(|d| d.format("%Y:%m:%d %H:%M:%S").to_string())
     }
     pub fn description(&self) -> Option<String> {
-        self.modified
-            .description
-            .clone()
-            .or(self.description.clone())
+        self.description.clone()
     }
     pub fn camera_info(&self) -> &CameraInfo {
         &self.camera_info
@@ -189,31 +181,25 @@ impl Metadata {
 
     /// Set description. Note: file will not modified unless you call save().
     pub fn set_description(&mut self, description: &str) {
-        self.modified.description = Some(description.to_string());
+        if !self.description.eq(&Some(description.to_string())) {
+            self.description = Some(description.to_string());
+            self.modified_tags.insert(Tag::Description);
+            self.litte_metadata
+                .set_tag(ExifTag::ImageDescription(description.to_string()));
+        }
     }
 
-    /// Save tags modified by set_xxx function
-    /// Return the slice of modified tag
+    /// Save modified tags
+    /// Return the list of modified tags
     pub fn save(&mut self) -> Result<EnumSet<Tag>, Error> {
-        let mut modified_tags: EnumSet<Tag> = EnumSet::new();
-
-        if self.modified.description.is_some() {
-            modified_tags.insert(Tag::Description);
-            self.litte_metadata.set_tag(ExifTag::ImageDescription(
-                self.modified.description.clone().expect("Unexpected Error"),
-            ));
-        }
-
-        // Save tags and update content
-        if !modified_tags.is_empty() {
+        if !self.modified_tags.is_empty() {
             self.litte_metadata.write_to_file(&self.path)?;
-            if self.modified.description.is_some() {
-                self.description = self.modified.description.clone();
-                self.modified.description = None;
-            }
+            let modified_tags = self.modified_tags;
+            self.modified_tags = EnumSet::empty();
+            Ok(modified_tags)
+        } else {
+            Ok(EnumSet::empty())
         }
-
-        Ok(modified_tags)
     }
 
     // Read a tag as a string
