@@ -46,8 +46,12 @@ struct SetArgs {
 #[group(required = true, multiple = true)]
 struct SetArgsSetters {
     /// Update ImageDescription tag
-    #[arg(short, long)]
+    #[arg(short = 't', long)]
     description: Option<String>,
+
+    /// Update DateTimeOriginal and CreateDate tags
+    #[arg(short, long)]
+    date: Option<String>,
 }
 
 macro_rules! print_table {
@@ -112,6 +116,18 @@ fn main() -> Result<(), std::io::Error> {
                 if args.setters.description.is_some() {
                     metadata.set_description(args.setters.description.as_ref().unwrap());
                 }
+                if args.setters.date.is_some() {
+                    let result = metadata
+                        .set_date_from_exif(args.setters.date.as_ref().unwrap().to_string());
+                    if result.is_err() {
+                        panic!(
+                            "Cannot parse date: '{}': {}!",
+                            args.setters.date.as_ref().unwrap(),
+                            result.err().unwrap()
+                        );
+                    }
+                }
+
                 match metadata.save() {
                     Err(e) => {
                         print_table!("Error!", e);

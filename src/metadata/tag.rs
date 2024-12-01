@@ -7,6 +7,7 @@ use std::fmt::Formatter;
 #[derive(EnumSetType, Debug)]
 pub enum Tag {
     Description,
+    Date,
 }
 
 impl Display for Tag {
@@ -27,7 +28,7 @@ impl DisplayEnumSet for EnumSet<Tag> {
             self.iter()
                 .map(|t| t.to_string())
                 .collect::<Vec<_>>()
-                .join(",")
+                .join(", ")
         }
     }
 }

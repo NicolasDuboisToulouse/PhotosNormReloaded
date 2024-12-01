@@ -16,6 +16,24 @@ use tag::Tag;
 pub mod camera_info;
 pub mod tag;
 
+trait ExifConversion {
+    fn to_exif_string(&self) -> String;
+    fn from_exif_string(input: String) -> Result<Self, Error>
+    where
+        Self: Sized;
+}
+impl ExifConversion for NaiveDateTime {
+    fn to_exif_string(&self) -> String {
+        self.format("%Y:%m:%d %H:%M:%S").to_string()
+    }
+    fn from_exif_string(input: String) -> Result<Self, Error> {
+        match NaiveDateTime::parse_from_str(&input, "%Y:%m:%d %H:%M:%S") {
+            Ok(dt) => Ok(dt),
+            Err(error) => Err(Error::other(error.to_string())),
+        }
+    }
+}
+
 pub struct Metadata {
     path: PathBuf,
     litte_metadata: LittleMetadata,
@@ -54,7 +72,7 @@ impl Metadata {
             );
         let date = match date {
             None => None,
-            Some(str_date) => NaiveDateTime::parse_from_str(&str_date, "%Y:%m:%d %H:%M:%S").ok(),
+            Some(str_date) => NaiveDateTime::from_exif_string(str_date).ok(),
         };
 
         // Load description
@@ -169,8 +187,7 @@ impl Metadata {
         self.date
     }
     pub fn exif_date(&self) -> Option<String> {
-        self.date()
-            .map(|d| d.format("%Y:%m:%d %H:%M:%S").to_string())
+        self.date().map(|d| d.to_exif_string())
     }
     pub fn description(&self) -> Option<String> {
         self.description.clone()
@@ -187,6 +204,26 @@ impl Metadata {
             self.litte_metadata
                 .set_tag(ExifTag::ImageDescription(description.to_string()));
         }
+    }
+
+    /// Set date. Note: file will not modified unless you call save().
+    pub fn set_date(&mut self, date: NaiveDateTime) {
+        if !self.date.eq(&Some(date)) {
+            self.date = Some(date);
+            self.modified_tags.insert(Tag::Date);
+            self.litte_metadata
+                .set_tag(ExifTag::DateTimeOriginal(date.to_exif_string()));
+            self.litte_metadata
+                .set_tag(ExifTag::CreateDate(date.to_exif_string()));
+        }
+    }
+
+    /// Set date from an exif date string. Note: file will not modified unless you call save().
+    /// Will return an error if str_date cannot be parsed
+    pub fn set_date_from_exif(&mut self, str_date: String) -> Result<(), Error> {
+        let date = NaiveDateTime::from_exif_string(str_date)?;
+        self.set_date(date);
+        Ok(())
     }
 
     /// Save modified tags
@@ -373,24 +410,102 @@ mod tests {
         let tmp_file_path = tmpdir.path().join("photo_norm_test.jpg");
         assert!(fs::copy(Path::new("tests/all_tags.jpg"), &tmp_file_path,).is_ok());
 
-        // Load
+        // Description tag check
         let result = Metadata::new(&tmp_file_path);
         assert!(result.is_ok());
         let mut metadata = result.unwrap();
 
-        // Modify tags
         metadata.set_description("Description 1");
         assert_eq!(metadata.description(), Some("Description 1".to_string()));
 
-        // Save
-        let tags = metadata.save();
-        let expected = enum_set!(Tag::Description);
-        assert_eq!(tags.ok(), Some(expected));
+        assert_eq!(metadata.save().ok(), Some(enum_set!(Tag::Description)));
 
-        // Reload and check tags
+        let result = Metadata::new(&tmp_file_path);
+        assert!(result.is_ok());
+        let mut metadata = result.unwrap();
+        assert_eq!(metadata.description(), Some("Description 1".to_string()));
+        assert_eq!(
+            metadata.date(),
+            NaiveDate::from_ymd_opt(2006, 10, 29)
+                .unwrap()
+                .and_hms_opt(16, 27, 21)
+        );
+
+        // invalid Date tag check
+        assert!(metadata
+            .set_date_from_exif("2001:01:01".to_string())
+            .is_err());
+        assert_eq!(
+            metadata.date(),
+            NaiveDate::from_ymd_opt(2006, 10, 29)
+                .unwrap()
+                .and_hms_opt(16, 27, 21)
+        );
+
+        assert_eq!(metadata.save().ok(), Some(enum_set!()));
+
+        let result = Metadata::new(&tmp_file_path);
+        assert!(result.is_ok());
+        let mut metadata = result.unwrap();
+        assert_eq!(metadata.description(), Some("Description 1".to_string()));
+        assert_eq!(
+            metadata.date(),
+            NaiveDate::from_ymd_opt(2006, 10, 29)
+                .unwrap()
+                .and_hms_opt(16, 27, 21)
+        );
+
+        // Date tag check
+        assert!(metadata
+            .set_date_from_exif("2001:01:01 01:01:01".to_string())
+            .is_ok());
+        assert_eq!(
+            metadata.date(),
+            NaiveDate::from_ymd_opt(2001, 1, 1)
+                .unwrap()
+                .and_hms_opt(1, 1, 1)
+        );
+
+        assert_eq!(metadata.save().ok(), Some(enum_set!(Tag::Date)));
+
+        let result = Metadata::new(&tmp_file_path);
+        assert!(result.is_ok());
+        let mut metadata = result.unwrap();
+        assert_eq!(metadata.description(), Some("Description 1".to_string()));
+        assert_eq!(
+            metadata.date(),
+            NaiveDate::from_ymd_opt(2001, 1, 1)
+                .unwrap()
+                .and_hms_opt(1, 1, 1)
+        );
+
+        // All tags check
+        assert!(metadata
+            .set_date_from_exif("2002:02:02 02:02:02".to_string())
+            .is_ok());
+        metadata.set_description("Description 2");
+        assert_eq!(metadata.description(), Some("Description 2".to_string()));
+        assert_eq!(
+            metadata.date(),
+            NaiveDate::from_ymd_opt(2002, 2, 2)
+                .unwrap()
+                .and_hms_opt(2, 2, 2)
+        );
+
+        assert_eq!(
+            metadata.save().ok(),
+            Some(enum_set!(Tag::Date | Tag::Description))
+        );
+
         let result = Metadata::new(&tmp_file_path);
         assert!(result.is_ok());
         let metadata = result.unwrap();
-        assert_eq!(metadata.description(), Some("Description 1".to_string()));
+        assert_eq!(metadata.description(), Some("Description 2".to_string()));
+        assert_eq!(
+            metadata.date(),
+            NaiveDate::from_ymd_opt(2002, 2, 2)
+                .unwrap()
+                .and_hms_opt(2, 2, 2)
+        );
     }
 }
