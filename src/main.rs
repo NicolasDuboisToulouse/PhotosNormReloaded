@@ -1,7 +1,7 @@
 use std::fs;
 
 use crate::metadata::tag::DisplayEnumSet;
-use clap::{Args, CommandFactory, Parser, Subcommand};
+use clap::{builder::ArgPredicate, Args, CommandFactory, Parser, Subcommand};
 use clap_markdown::MarkdownOptions;
 use metadata::Metadata;
 
@@ -18,7 +18,7 @@ struct Cli {
     command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 enum Commands {
     /// info: Print some metadata from provided files
     Info(InfoArgs),
@@ -26,18 +26,21 @@ enum Commands {
     /// set: Update tags
     Set(SetArgs),
 
+    /// fix: Fix file properties
+    Fix(FixArgs),
+
     #[command(hide = true)]
     GenerateReadmeMd,
 }
 
-#[derive(Args)]
+#[derive(Args, Debug)]
 struct InfoArgs {
     /// images to load
     #[clap(required = true, value_name = "FILES")]
     images: Vec<std::path::PathBuf>,
 }
 
-#[derive(Args)]
+#[derive(Args, Debug)]
 struct SetArgs {
     #[command(flatten)]
     setters: SetArgsSetters,
@@ -50,16 +53,43 @@ struct SetArgs {
     #[clap(required = true, value_name = "FILES")]
     images: Vec<std::path::PathBuf>,
 }
-#[derive(Args)]
+#[derive(Args, Debug)]
 #[group(required = true, multiple = true)]
 struct SetArgsSetters {
-    /// Update ImageDescription tag
+    /// Update ImageDescription tag (-t: title)
     #[arg(short = 't', long)]
     description: Option<String>,
 
     /// Update DateTimeOriginal and CreateDate tags
     #[arg(short, long)]
     date: Option<String>,
+}
+
+#[derive(Args, Debug)]
+struct FixArgs {
+    /// Apply all fixes (default)
+    #[arg(
+        short,
+        long,
+        default_value_if("fixers", ArgPredicate::IsPresent, "false"),
+        default_value("true")
+    )]
+    all: bool,
+
+    #[command(flatten)]
+    setters: FixArgsFixers,
+
+    /// images to fix
+    #[clap(required = true, value_name = "FILES")]
+    images: Vec<std::path::PathBuf>,
+}
+
+#[derive(Args, Debug)]
+#[group(id = "fixers", required = false, multiple = true)]
+struct FixArgsFixers {
+    /// Fix ExifImageWidth/Height according to real image width/height
+    #[arg(short, long)]
+    dimensions: bool,
 }
 
 macro_rules! print_table {
@@ -79,6 +109,7 @@ fn main() -> Result<(), std::io::Error> {
             }
             &args.images
         }
+        Commands::Fix(args) => &args.images,
         Commands::GenerateReadmeMd => {
             let readme_text = clap_markdown::help_markdown_command_custom(
                 &Cli::command(),
@@ -156,6 +187,20 @@ fn main() -> Result<(), std::io::Error> {
                     }
                 }
             }
+            Commands::Fix(args) => {
+                if args.all || args.setters.dimensions {
+                    metadata.fix_dimentions();
+                }
+                match metadata.save() {
+                    Err(e) => {
+                        print_table!("Error!", e);
+                    }
+                    Ok(tags) => {
+                        print_table!("Updated tags:", tags.to_string_coma());
+                    }
+                }
+            }
+
             Commands::GenerateReadmeMd => {
                 panic!("Cannot reach this code!");
             }

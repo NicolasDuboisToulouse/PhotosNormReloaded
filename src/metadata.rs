@@ -206,7 +206,8 @@ impl Metadata {
         }
     }
 
-    /// Set date. Note: file will not modified unless you call save().
+    /// Set date.
+    /// Note: file will not modified unless you call save().
     pub fn set_date(&mut self, date: NaiveDateTime) {
         if !self.date.eq(&Some(date)) {
             self.date = Some(date);
@@ -218,12 +219,35 @@ impl Metadata {
         }
     }
 
-    /// Set date from an exif date string. Note: file will not modified unless you call save().
+    /// Set date from an exif date string.
+    /// Note: file will not modified unless you call save().
     /// Will return an error if str_date cannot be parsed
     pub fn set_date_from_exif(&mut self, str_date: String) -> Result<(), Error> {
         let date = NaiveDateTime::from_exif_string(str_date)?;
         self.set_date(date);
         Ok(())
+    }
+
+    /// Check if ExifImageWidth/Height have the good values or fix them.
+    /// Note: file will not modified unless you call save().
+    /// Return true if dimensions has been fixed
+    pub fn fix_dimentions(&mut self) -> bool {
+        let exif_width =
+            Self::get_tag_u32(&self.litte_metadata, &ExifTag::ExifImageWidth(Vec::new()));
+        let exif_height =
+            Self::get_tag_u32(&self.litte_metadata, &ExifTag::ExifImageHeight(Vec::new()));
+
+        if !exif_width.eq(&Some(self.width())) || !exif_height.eq(&Some(self.height())) {
+            self.modified_tags.insert(Tag::Dimensions);
+            self.litte_metadata
+                .set_tag(ExifTag::ExifImageWidth(vec![self.width()]));
+            self.litte_metadata
+                .set_tag(ExifTag::ExifImageHeight(vec![self.height()]));
+
+            true
+        } else {
+            false
+        }
     }
 
     /// Save modified tags
@@ -239,21 +263,28 @@ impl Metadata {
         }
     }
 
-    // Read a tag as a string
+    // Read a string tag
     fn get_tag_string(litte_metadata: &LittleMetadata, tag: &ExifTag) -> Option<String> {
         let tag = litte_metadata.get_tag(tag).next()?;
         let endian = litte_metadata.get_endian();
         Some(String::from_u8_vec(&tag.value_as_u8_vec(&endian), &endian))
     }
 
-    // Read a tag as a u16
+    // Read an u16 tag
     fn get_tag_u16(litte_metadata: &LittleMetadata, tag: &ExifTag) -> Option<u16> {
         let tag = litte_metadata.get_tag(tag).next()?;
         let endian = litte_metadata.get_endian();
         Some(u16::from_u8_vec(&tag.value_as_u8_vec(&endian), &endian))
     }
 
-    //  Read a tag as a uR64
+    // Read an u32 tag
+    fn get_tag_u32(litte_metadata: &LittleMetadata, tag: &ExifTag) -> Option<u32> {
+        let tag = litte_metadata.get_tag(tag).next()?;
+        let endian = litte_metadata.get_endian();
+        Some(u32::from_u8_vec(&tag.value_as_u8_vec(&endian), &endian))
+    }
+
+    // Read an uR64 tag
     fn get_tag_ur64(litte_metadata: &LittleMetadata, tag: &ExifTag) -> Option<uR64> {
         let endian = litte_metadata.get_endian();
         litte_metadata
@@ -262,7 +293,7 @@ impl Metadata {
             .map(|tag| uR64::from_u8_vec(&tag.value_as_u8_vec(&endian), &endian))
     }
 
-    //  Read a tag as a iR64
+    //  Read an iR64 tag
     fn get_tag_ir64(litte_metadata: &LittleMetadata, tag: &ExifTag) -> Option<iR64> {
         let endian = litte_metadata.get_endian();
         litte_metadata
@@ -507,5 +538,41 @@ mod tests {
                 .unwrap()
                 .and_hms_opt(2, 2, 2)
         );
+    }
+
+    #[test]
+    fn fix_dimensions() {
+        let tmpdir = tempfile::tempdir().unwrap();
+        let tmp_file_path = tmpdir.path().join("photo_norm_test.jpg");
+
+        // Check a valid file
+        assert!(fs::copy(Path::new("tests/all_tags.jpg"), &tmp_file_path,).is_ok());
+        let result = Metadata::new(&tmp_file_path);
+        assert!(result.is_ok());
+        let mut metadata = result.unwrap();
+        assert!(!metadata.fix_dimentions());
+        assert_eq!(metadata.save().ok(), Some(enum_set!()));
+
+        // Check an invalid file
+        assert!(fs::copy(Path::new("tests/invalid_dim.jpg"), &tmp_file_path).is_ok());
+        let result = Metadata::new(&tmp_file_path);
+        assert!(result.is_ok());
+        let mut metadata = result.unwrap();
+        assert!(metadata.fix_dimentions());
+        assert_eq!(metadata.save().ok(), Some(enum_set!(Tag::Dimensions)));
+
+        // Reload file and check dimensions
+        let litte_metadata = LittleMetadata::new_from_path(&tmp_file_path);
+        assert!(litte_metadata.is_ok());
+        let width = Metadata::get_tag_u32(
+            litte_metadata.as_ref().unwrap(),
+            &ExifTag::ExifImageWidth(Vec::new()),
+        );
+        assert_eq!(width, Some(2048));
+        let height = Metadata::get_tag_u32(
+            litte_metadata.as_ref().unwrap(),
+            &ExifTag::ExifImageHeight(Vec::new()),
+        );
+        assert_eq!(height, Some(1536));
     }
 }

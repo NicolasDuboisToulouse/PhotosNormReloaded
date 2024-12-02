@@ -8,6 +8,7 @@ use std::fmt::Formatter;
 pub enum Tag {
     Description,
     Date,
+    Dimensions,
 }
 
 impl Display for Tag {
