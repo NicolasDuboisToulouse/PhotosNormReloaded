@@ -7,6 +7,8 @@ use little_exif::{
     exif_tag::ExifTag, metadata::Metadata as LittleMetadata, rational::uR64,
     u8conversion::U8conversion,
 };
+use std::ffi::OsStr;
+use std::fs::rename;
 use std::{
     io::Error,
     path::{Path, PathBuf},
@@ -196,7 +198,8 @@ impl Metadata {
         &self.camera_info
     }
 
-    /// Set description. Note: file will not modified unless you call save().
+    /// Set description.
+    /// Note: file will not modified unless you call save().
     pub fn set_description(&mut self, description: &str) {
         if !self.description.eq(&Some(description.to_string())) {
             self.description = Some(description.to_string());
@@ -250,10 +253,51 @@ impl Metadata {
         }
     }
 
+    /// Mark file to be renamed to %Y_%m_%d-%H_%M_%S[ - %description]
+    /// Note: file will not modified unless you call save().
+    pub fn fix_file_name(&mut self) {
+        // The file name will be computed on save
+        // to take in account potential other set_xxx calls.
+        self.modified_tags.insert(Tag::FileName);
+    }
+
     /// Save modified tags
     /// Return the list of modified tags
     pub fn save(&mut self) -> Result<EnumSet<Tag>, Error> {
         if !self.modified_tags.is_empty() {
+            // Update filename if needed
+            if self.modified_tags.contains(Tag::FileName) {
+                match self.date {
+                    None => {
+                        self.modified_tags.remove(Tag::FileName);
+                    }
+                    Some(date) => {
+                        let mut target_file_name = date.format("%Y_%m_%d-%H_%M_%S").to_string();
+
+                        if self.description.is_some() {
+                            target_file_name.push_str(" - ");
+                            target_file_name.push_str(self.description.as_ref().unwrap());
+                        }
+
+                        if let Some(os_ext) = self.path.extension() {
+                            target_file_name.push('.');
+                            target_file_name.push_str(&os_ext.to_string_lossy());
+                        }
+
+                        target_file_name = sanitise_file_name::sanitise(&target_file_name);
+
+                        if Some(OsStr::new(&target_file_name)) != self.path.file_name() {
+                            let new_path = self.path.with_file_name(target_file_name);
+                            rename(&self.path, &new_path)?;
+                            self.path = new_path;
+                        } else {
+                            self.modified_tags.remove(Tag::FileName);
+                        }
+                    }
+                }
+            }
+
+            // Save tags
             self.litte_metadata.write_to_file(&self.path)?;
             let modified_tags = self.modified_tags;
             self.modified_tags = EnumSet::empty();
@@ -574,5 +618,35 @@ mod tests {
             &ExifTag::ExifImageHeight(Vec::new()),
         );
         assert_eq!(height, Some(1536));
+    }
+
+    #[test]
+    fn fix_file_name() {
+        let tmpdir = tempfile::tempdir().unwrap();
+        let tmp_file_path = tmpdir.path().join("photo_norm_test.jpg");
+        let target_file_path = tmpdir
+            .path()
+            .join("2006_10_29-16_27_21 - A fun picture!.jpg");
+        assert!(fs::copy(Path::new("tests/all_tags.jpg"), &tmp_file_path,).is_ok());
+        assert!(tmp_file_path.exists());
+        assert!(!target_file_path.exists());
+
+        // Check file rename
+        let result = Metadata::new(&tmp_file_path);
+        assert!(result.is_ok());
+        let mut metadata = result.unwrap();
+        metadata.fix_file_name();
+        assert_eq!(metadata.save().ok(), Some(enum_set!(Tag::FileName)));
+        assert!(!tmp_file_path.exists());
+        assert!(target_file_path.exists());
+
+        // No change on valid filename
+        let result = Metadata::new(&target_file_path);
+        assert!(result.is_ok());
+        let mut metadata = result.unwrap();
+        metadata.fix_file_name();
+        assert_eq!(metadata.save().ok(), Some(enum_set!()));
+        assert!(!tmp_file_path.exists());
+        assert!(target_file_path.exists());
     }
 }

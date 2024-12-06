@@ -90,6 +90,10 @@ struct FixArgsFixers {
     /// Fix ExifImageWidth/Height according to real image width/height
     #[arg(short, long)]
     dimensions: bool,
+
+    /// Fix file name to %Y_%m_%d-%H_%M_%S[ - %description]
+    #[arg(short, long)]
+    name: bool,
 }
 
 macro_rules! print_table {
@@ -190,6 +194,9 @@ fn main() -> Result<(), std::io::Error> {
             Commands::Fix(args) => {
                 if args.all || args.setters.dimensions {
                     metadata.fix_dimentions();
+                }
+                if args.all || args.setters.name {
+                    metadata.fix_file_name();
                 }
                 match metadata.save() {
                     Err(e) => {

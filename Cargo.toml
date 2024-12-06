@@ -14,5 +14,7 @@ clap-markdown = "0.1.4"
 enumset = "1.1.5"
 image = "0.25.5"
 infer = "0.16.0"
-little_exif = "0.6.2"
+#little_exif = "0.6.2"
+little_exif = { git = "https://github.com/NicolasDuboisToulouse/little_exif" }
+sanitise-file-name = "1.0.0"
 tempfile = "3.14.0"
