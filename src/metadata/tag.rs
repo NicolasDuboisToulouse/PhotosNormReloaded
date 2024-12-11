@@ -10,6 +10,7 @@ pub enum Tag {
     Date,
     Dimensions,
     FileName,
+    Orientation,
 }
 
 impl Display for Tag {

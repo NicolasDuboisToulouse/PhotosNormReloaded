@@ -38,6 +38,7 @@ impl ExifConversion for NaiveDateTime {
 
 pub struct Metadata {
     path: PathBuf,
+    mime: String,
     litte_metadata: LittleMetadata,
     dimentions: (u32, u32),
     date: Option<NaiveDateTime>,
@@ -169,6 +170,7 @@ impl Metadata {
 
         Ok(Metadata {
             path: PathBuf::from(path),
+            mime: kind.mime_type().to_string(),
             litte_metadata,
             dimentions,
             date,
@@ -199,7 +201,7 @@ impl Metadata {
     }
 
     /// Set description.
-    /// Note: file will not modified unless you call save().
+    /// Note: file will not be modified unless you call save().
     pub fn set_description(&mut self, description: &str) {
         if !self.description.eq(&Some(description.to_string())) {
             self.description = Some(description.to_string());
@@ -210,7 +212,7 @@ impl Metadata {
     }
 
     /// Set date.
-    /// Note: file will not modified unless you call save().
+    /// Note: file will not be modified unless you call save().
     pub fn set_date(&mut self, date: NaiveDateTime) {
         if !self.date.eq(&Some(date)) {
             self.date = Some(date);
@@ -223,7 +225,7 @@ impl Metadata {
     }
 
     /// Set date from an exif date string.
-    /// Note: file will not modified unless you call save().
+    /// Note: file will not be modified unless you call save().
     /// Will return an error if str_date cannot be parsed
     pub fn set_date_from_exif(&mut self, str_date: String) -> Result<(), Error> {
         let date = NaiveDateTime::from_exif_string(str_date)?;
@@ -232,7 +234,7 @@ impl Metadata {
     }
 
     /// Check if ExifImageWidth/Height have the good values or fix them.
-    /// Note: file will not modified unless you call save().
+    /// Note: file will not be modified unless you call save().
     /// Return true if dimensions has been fixed
     pub fn fix_dimentions(&mut self) -> bool {
         let exif_width =
@@ -254,11 +256,17 @@ impl Metadata {
     }
 
     /// Mark file to be renamed to %Y_%m_%d-%H_%M_%S[ - %description]
-    /// Note: file will not modified unless you call save().
+    /// Note: file will be not modified unless you call save().
     pub fn fix_file_name(&mut self) {
         // The file name will be computed on save
         // to take in account potential other set_xxx calls.
         self.modified_tags.insert(Tag::FileName);
+    }
+
+    /// Mark file to be rotated if needed
+    /// Note: file will not be modified unless you call save().
+    pub fn fix_orientation(&mut self) {
+        self.modified_tags.insert(Tag::Orientation);
     }
 
     /// Save modified tags
@@ -293,6 +301,45 @@ impl Metadata {
                         } else {
                             self.modified_tags.remove(Tag::FileName);
                         }
+                    }
+                }
+            }
+
+            if self.modified_tags.contains(Tag::Orientation) {
+                if self.mime != "image/jpeg" && self.mime != "image/jpg" {
+                    // Curently, only JPEG files are supported
+                    self.modified_tags.remove(Tag::Orientation);
+                } else {
+                    let orientation =
+                        Self::get_tag_u16(&self.litte_metadata, &ExifTag::Orientation(Vec::new()));
+                    let trasform_op = match orientation {
+                        Some(2) => turbojpeg::TransformOp::Hflip,
+                        Some(3) => turbojpeg::TransformOp::Rot180,
+                        Some(4) => turbojpeg::TransformOp::Vflip,
+                        Some(5) => turbojpeg::TransformOp::Transpose,
+                        Some(6) => turbojpeg::TransformOp::Rot90,
+                        Some(7) => turbojpeg::TransformOp::Transverse,
+                        Some(8) => turbojpeg::TransformOp::Rot270,
+                        _ => turbojpeg::TransformOp::None,
+                    };
+
+                    if trasform_op == turbojpeg::TransformOp::None {
+                        self.modified_tags.remove(Tag::Orientation);
+                    } else {
+                        let jpeg_data = std::fs::read(&self.path)?;
+                        let mut transformer = match turbojpeg::Transformer::new() {
+                            Err(e) => return Err(Error::other(e.to_string())),
+                            Ok(t) => t,
+                        };
+                        let transform = turbojpeg::Transform::op(trasform_op);
+                        let mut flipped_data = turbojpeg::OutputBuf::new_owned();
+                        if let Err(e) =
+                            transformer.transform(&transform, &jpeg_data, &mut flipped_data)
+                        {
+                            return Err(Error::other(e.to_string()));
+                        }
+                        std::fs::write(&self.path, &flipped_data)?;
+                        self.litte_metadata.set_tag(ExifTag::Orientation(vec![1]));
                     }
                 }
             }
@@ -649,4 +696,53 @@ mod tests {
         assert!(!tmp_file_path.exists());
         assert!(target_file_path.exists());
     }
+
+    #[test]
+    fn fix_orientation() {
+        let tmpdir = tempfile::tempdir().unwrap();
+        let tmp_file_path = tmpdir.path().join("photo_norm_test.jpg");
+        assert!(fs::copy(Path::new("tests/all_tags.jpg"), &tmp_file_path,).is_ok());
+        let result = Metadata::new(&tmp_file_path);
+        assert!(result.is_ok());
+        let mut metadata = result.unwrap();
+
+        let orientation =
+            Metadata::get_tag_u16(&metadata.litte_metadata, &ExifTag::Orientation(Vec::new()))
+                .unwrap();
+        assert_eq!(orientation, 8);
+
+        metadata.fix_orientation();
+        assert_eq!(metadata.save().ok(), Some(enum_set!(Tag::Orientation)));
+
+        let result = Metadata::new(&tmp_file_path);
+        assert!(result.is_ok());
+        let mut metadata = result.unwrap();
+        let orientation =
+            Metadata::get_tag_u16(&metadata.litte_metadata, &ExifTag::Orientation(Vec::new()))
+                .unwrap();
+        assert_eq!(orientation, 1);
+
+        metadata.fix_orientation();
+        assert_eq!(metadata.save().ok(), Some(enum_set!()));
+    }
+
+    // This test does not work: the load of PNG files fail
+    // with error "Invalid PNG chunk name" ???
+    // #[test]
+    // fn fix_orientation_fail_for_png() {
+    //     let tmpdir = tempfile::tempdir().unwrap();
+    //     let tmp_file_path = tmpdir.path().join("photo_norm_test.png");
+    //     assert!(fs::copy(Path::new("tests/all_tags.png"), &tmp_file_path,).is_ok());
+    //     let result = Metadata::new(&tmp_file_path);
+    //     assert!(result.is_ok());
+    //     let mut metadata = result.unwrap();
+
+    //     let orientation =
+    //         Metadata::get_tag_u16(&metadata.litte_metadata, &ExifTag::Orientation(Vec::new()))
+    //             .unwrap();
+    //     assert_eq!(orientation, 8);
+
+    //     metadata.fix_orientation();
+    //     assert_eq!(metadata.save().ok(), Some(enum_set!()));
+    // }
 }

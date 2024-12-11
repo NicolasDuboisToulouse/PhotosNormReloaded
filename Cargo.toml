@@ -18,3 +18,11 @@ infer = "0.16.0"
 little_exif = { git = "https://github.com/NicolasDuboisToulouse/little_exif" }
 sanitise-file-name = "1.0.0"
 tempfile = "3.14.0"
+# turbojpeg is only used to rotate images lossless (or mostly)
+# It is not used to encode/decode images
+# default-features = false disable the need of NASM (disable the fast assembler code)
+# cmake feature enables the static build of C code
+# image feature enables the use of 'image' crate
+# https://github.com/honzasp/rust-turbojpeg/tree/master/turbojpeg-sys
+# https://github.com/libjpeg-turbo/libjpeg-turbo/blob/main/BUILDING.md
+turbojpeg = {version = "1.1.1", default-features = false, features = ["image", "cmake"] }

@@ -94,6 +94,11 @@ struct FixArgsFixers {
     /// Fix file name to %Y_%m_%d-%H_%M_%S[ - %description]
     #[arg(short, long)]
     name: bool,
+
+    /// Fix image orientation (lossless rotate the image).
+    /// Only JPEG files are supported.
+    #[arg(short, long)]
+    orientation: bool,
 }
 
 macro_rules! print_table {
@@ -197,6 +202,9 @@ fn main() -> Result<(), std::io::Error> {
                 }
                 if args.all || args.setters.name {
                     metadata.fix_file_name();
+                }
+                if args.all || args.setters.orientation {
+                    metadata.fix_orientation();
                 }
                 match metadata.save() {
                     Err(e) => {

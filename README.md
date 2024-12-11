@@ -73,6 +73,7 @@ fix: Fix file properties
   Default value: `true`
 * `-d`, `--dimensions` — Fix ExifImageWidth/Height according to real image width/height
 * `-n`, `--name` — Fix file name to %Y_%m_%d-%H_%M_%S[ - %description]
+* `-o`, `--orientation` — Fix image orientation (lossless rotate the image). Only JPEG files are supported
 
 
 
