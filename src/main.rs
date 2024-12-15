@@ -91,7 +91,8 @@ struct FixArgsFixers {
     #[arg(short, long)]
     dimensions: bool,
 
-    /// Fix file name to %Y_%m_%d-%H_%M_%S[ - %description]
+    /// Fix file name to %Y_%m_%d-%H_%M_%S[ - %description].
+    /// File names may be numbered to prevent erasing file with same name.
     #[arg(short, long)]
     name: bool,
 

@@ -1,3 +1,4 @@
+use add_extention::AddExtention;
 use camera_info::CameraInfo;
 use chrono::NaiveDateTime;
 use enumset::EnumSet;
@@ -15,6 +16,7 @@ use std::{
 };
 use tag::Tag;
 
+pub mod add_extention;
 pub mod camera_info;
 pub mod tag;
 
@@ -273,38 +275,57 @@ impl Metadata {
     /// Return the list of modified tags
     pub fn save(&mut self) -> Result<EnumSet<Tag>, Error> {
         if !self.modified_tags.is_empty() {
-            // Update filename if needed
+            //
+            // Rename file
+            //
             if self.modified_tags.contains(Tag::FileName) {
                 match self.date {
                     None => {
                         self.modified_tags.remove(Tag::FileName);
                     }
                     Some(date) => {
-                        let mut target_file_name = date.format("%Y_%m_%d-%H_%M_%S").to_string();
-
+                        let mut new_fileprefix = date.format("%Y_%m_%d-%H_%M_%S").to_string();
                         if self.description.is_some() {
-                            target_file_name.push_str(" - ");
-                            target_file_name.push_str(self.description.as_ref().unwrap());
+                            new_fileprefix.push_str(" - ");
+                            new_fileprefix.push_str(self.description.as_ref().unwrap());
                         }
 
-                        if let Some(os_ext) = self.path.extension() {
-                            target_file_name.push('.');
-                            target_file_name.push_str(&os_ext.to_string_lossy());
-                        }
+                        let extention = self.path.extension().unwrap_or(OsStr::new(""));
 
-                        target_file_name = sanitise_file_name::sanitise(&target_file_name);
+                        // Sanitize the file name and preserve space for the extention
+                        // The ext space reservation may not works for non-utf8 encoding extenttion
+                        let mut opt = sanitise_file_name::Options::DEFAULT;
+                        opt.length_limit -= extention.len() + 1;
+                        new_fileprefix =
+                            sanitise_file_name::sanitise_with_options(&new_fileprefix, &opt);
+                        let os_new_fileprefix = OsStr::new(&new_fileprefix);
 
-                        if Some(OsStr::new(&target_file_name)) != self.path.file_name() {
-                            let new_path = self.path.with_file_name(target_file_name);
-                            rename(&self.path, &new_path)?;
-                            self.path = new_path;
+                        let mut os_new_filename = os_new_fileprefix.to_os_string();
+                        os_new_filename.add_ext(extention);
+                        if Some(os_new_filename.as_os_str()) != self.path.file_name() {
+                            let mut target_file_path = self.path.with_file_name(os_new_filename);
+                            // Number filename to prevent file overwriting
+                            let mut count = 0;
+                            while target_file_path.exists() {
+                                count += 1;
+                                os_new_filename = os_new_fileprefix.into();
+                                os_new_filename.push(format!("-{}", count));
+                                os_new_filename.add_ext(extention);
+                                target_file_path = self.path.with_file_name(os_new_filename);
+                            }
+                            rename(&self.path, &target_file_path)?;
+                            self.path = target_file_path;
                         } else {
+                            // File already have the expected name
                             self.modified_tags.remove(Tag::FileName);
                         }
                     }
                 }
             }
 
+            //
+            // Rotate image
+            //
             if self.modified_tags.contains(Tag::Orientation) {
                 if self.mime != "image/jpeg" && self.mime != "image/jpg" {
                     // Curently, only JPEG files are supported
@@ -344,7 +365,9 @@ impl Metadata {
                 }
             }
 
+            //
             // Save tags
+            //
             self.litte_metadata.write_to_file(&self.path)?;
             let modified_tags = self.modified_tags;
             self.modified_tags = EnumSet::empty();
@@ -430,7 +453,7 @@ impl Metadata {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
+    use std::fs::{self, OpenOptions};
 
     use chrono::NaiveDate;
     use enumset::enum_set;
@@ -693,6 +716,46 @@ mod tests {
         let mut metadata = result.unwrap();
         metadata.fix_file_name();
         assert_eq!(metadata.save().ok(), Some(enum_set!()));
+        assert!(!tmp_file_path.exists());
+        assert!(target_file_path.exists());
+    }
+
+    #[test]
+    fn fix_file_name_numbered() {
+        let tmpdir = tempfile::tempdir().unwrap();
+
+        // Create dummy images
+        for i in 0..=3 {
+            let filename = match i {
+                0 => "2006_10_29-16_27_21 - A fun picture!.jpg".to_string(),
+                _ => format!("2006_10_29-16_27_21 - A fun picture!-{i}.jpg"),
+            };
+            let tmp_file_path = tmpdir.path().join(filename);
+            assert!(!tmp_file_path.exists());
+            drop(
+                OpenOptions::new()
+                    .create(true)
+                    .truncate(false)
+                    .write(true)
+                    .open(&tmp_file_path),
+            );
+            assert!(tmp_file_path.exists());
+        }
+
+        let tmp_file_path = tmpdir.path().join("photo_norm_test.jpg");
+        assert!(fs::copy(Path::new("tests/all_tags.jpg"), &tmp_file_path,).is_ok());
+        assert!(tmp_file_path.exists());
+        let target_file_path = tmpdir
+            .path()
+            .join("2006_10_29-16_27_21 - A fun picture!-4.jpg");
+        assert!(!target_file_path.exists());
+
+        // Check file rename
+        let result = Metadata::new(&tmp_file_path);
+        assert!(result.is_ok());
+        let mut metadata = result.unwrap();
+        metadata.fix_file_name();
+        assert_eq!(metadata.save().ok(), Some(enum_set!(Tag::FileName)));
         assert!(!tmp_file_path.exists());
         assert!(target_file_path.exists());
     }
