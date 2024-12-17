@@ -11,6 +11,7 @@ repository = "https://github.com/NicolasDuboisToulouse/PhotosNormReloaded"
 chrono = "0.4.38"
 clap = { version = "4.5.21", features = ["derive"]}
 clap-markdown = "0.1.4"
+colored = "2.2.0"
 enumset = "1.1.5"
 image = "0.25.5"
 infer = "0.16.0"

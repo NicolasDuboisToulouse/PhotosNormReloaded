@@ -1,9 +1,9 @@
-use std::fs;
-
 use crate::metadata::tag::DisplayEnumSet;
 use clap::{builder::ArgPredicate, Args, CommandFactory, Parser, Subcommand};
 use clap_markdown::MarkdownOptions;
+use colored::Colorize;
 use metadata::Metadata;
+use std::fs;
 
 mod metadata;
 
@@ -165,9 +165,8 @@ fn main() -> Result<(), std::io::Error> {
 
     // Check parameters
     if let Commands::Set(ref args) = args.command {
-        println!("coucou");
         if !args.force && images.len() != 1 {
-            panic!("error: Setting same tag value to several images is not allowed unless you use --force option.");
+            panic!("{}: Setting same tag values to several images is not allowed unless you use {} option.", "error".red(), "--force".yellow());
         }
     }
 
@@ -177,7 +176,7 @@ fn main() -> Result<(), std::io::Error> {
 
         let result = Metadata::new(image);
         if result.is_err() {
-            print_table!("Error!", result.err().expect("Unexpected error."));
+            print_table!("Error!".red(), result.err().expect("Unexpected error."));
             println!();
             continue;
         }
@@ -197,13 +196,13 @@ fn main() -> Result<(), std::io::Error> {
                     "Date:",
                     metadata
                         .exif_date()
-                        .unwrap_or("{No exif date!}".to_string())
+                        .unwrap_or("{No exif date!}".yellow().to_string())
                 );
                 print_table!(
                     "Desription:",
                     metadata
                         .description()
-                        .unwrap_or("{No exif description!}".to_string())
+                        .unwrap_or("{No exif description!}".yellow().to_string())
                 );
                 print_table!("Camera:", metadata.camera_info());
             }
@@ -220,8 +219,9 @@ fn main() -> Result<(), std::io::Error> {
                         .set_date_from_exif(args.setters.date.as_ref().unwrap().to_string());
                     if result.is_err() {
                         panic!(
-                            "Cannot parse date: '{}': {}!",
-                            args.setters.date.as_ref().unwrap(),
+                            "{}: Cannot parse date: '{}': {}!",
+                            "error".red(),
+                            args.setters.date.as_ref().unwrap().yellow(),
                             result.err().unwrap()
                         );
                     }
@@ -229,7 +229,7 @@ fn main() -> Result<(), std::io::Error> {
 
                 match metadata.save() {
                     Err(e) => {
-                        print_table!("Error!", e);
+                        print_table!("Error!".red(), e);
                     }
                     Ok(tags) => {
                         print_table!("Updated tags:", tags.to_string_coma());
@@ -248,7 +248,7 @@ fn main() -> Result<(), std::io::Error> {
                 }
                 match metadata.save() {
                     Err(e) => {
-                        print_table!("Error!", e);
+                        print_table!("Error!".red(), e);
                     }
                     Ok(tags) => {
                         print_table!("Updated tags:", tags.to_string_coma());
