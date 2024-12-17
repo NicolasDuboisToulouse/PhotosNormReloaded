@@ -9,8 +9,19 @@ mod metadata;
 
 const CARGO_PKG_NAME: &str = env!("CARGO_PKG_NAME");
 
+pub const DOC: &str = "PhotosNorm: A simple tool to lossless manipulate images properties.\n\
+                       \n\
+                       info: display some EXIF info.\n\
+                       set:  Update some EXIF tags. More info below or with set --help.\n\
+                       fix:  Fix properties like orientation, file name, ... More info below or with fix --help.\n\
+                       \n\
+                       To each command, you can provide one or more files and/or folders.\n\
+                       Each known files (aka images) will be processed, other ones will be ignored.\n\
+                       For each folder, all files within will be analysed like described just before. Sub-folders will be \
+                       ignored (this is non-recursive).";
+
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
+#[command(version, about = DOC, long_about = None)]
 #[command(propagate_version = true)]
 #[command(flatten_help = true)]
 struct Cli {
@@ -20,7 +31,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// info: Print some metadata from provided files
+    /// info: display some EXIF info
     Info(InfoArgs),
 
     /// set: Update tags
@@ -36,8 +47,8 @@ enum Commands {
 #[derive(Args, Debug)]
 struct InfoArgs {
     /// images to load
-    #[clap(required = true, value_name = "FILES")]
-    images: Vec<std::path::PathBuf>,
+    #[clap(required = true, value_name = "IMAGES/FOLDERS")]
+    files: Vec<std::path::PathBuf>,
 }
 
 #[derive(Args, Debug)]
@@ -50,8 +61,8 @@ struct SetArgs {
     force: bool,
 
     /// images to update
-    #[clap(required = true, value_name = "FILES")]
-    images: Vec<std::path::PathBuf>,
+    #[clap(required = true, value_name = "IMAGES/FOLDERS")]
+    files: Vec<std::path::PathBuf>,
 }
 #[derive(Args, Debug)]
 #[group(required = true, multiple = true)]
@@ -80,8 +91,8 @@ struct FixArgs {
     setters: FixArgsFixers,
 
     /// images to fix
-    #[clap(required = true, value_name = "FILES")]
-    images: Vec<std::path::PathBuf>,
+    #[clap(required = true, value_name = "IMAGES/FOLDERS")]
+    files: Vec<std::path::PathBuf>,
 }
 
 #[derive(Args, Debug)]
@@ -111,15 +122,11 @@ macro_rules! print_table {
 fn main() -> Result<(), std::io::Error> {
     let args = Cli::parse();
 
-    let images = match &args.command {
-        Commands::Info(args) => &args.images,
-        Commands::Set(args) => {
-            if !args.force && args.images.len() != 1 {
-                panic!("Set same tag values to several images is not allowed unless you use --force option.");
-            }
-            &args.images
-        }
-        Commands::Fix(args) => &args.images,
+    // Parse command and grab file list
+    let files = match &args.command {
+        Commands::Info(args) => &args.files,
+        Commands::Set(args) => &args.files,
+        Commands::Fix(args) => &args.files,
         Commands::GenerateReadmeMd => {
             let readme_text = clap_markdown::help_markdown_command_custom(
                 &Cli::command(),
@@ -133,6 +140,38 @@ fn main() -> Result<(), std::io::Error> {
         }
     };
 
+    // list images from file list (aka read folders)
+    let mut images: Vec<std::path::PathBuf> = Vec::new();
+    for file in files.iter() {
+        if !file.is_dir() {
+            images.push(file.to_path_buf());
+        } else {
+            match fs::read_dir(file) {
+                // Let open display the error and process next file.
+                Err(_) => images.push(file.to_path_buf()),
+                // Add all files to image list
+                Ok(files) => {
+                    for entry in files {
+                        let file = entry.unwrap().path();
+                        // non-recursive
+                        if file.is_file() {
+                            images.push(file.to_path_buf());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Check parameters
+    if let Commands::Set(ref args) = args.command {
+        println!("coucou");
+        if !args.force && images.len() != 1 {
+            panic!("error: Setting same tag value to several images is not allowed unless you use --force option.");
+        }
+    }
+
+    // Process all images
     for image in images.iter() {
         print_table!("File:", image.display());
 

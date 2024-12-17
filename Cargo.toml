@@ -2,7 +2,7 @@
 name = "PhotosNorm"
 version = "0.0.1"
 edition = "2021"
-description = "Automatic rotate, rename and exif fix"
+description = "A simple tool to lossless manipulate image properties"
 readme = "README.md"
 license-file = "LICENSE"
 repository = "https://github.com/NicolasDuboisToulouse/PhotosNormReloaded"

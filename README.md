@@ -11,16 +11,24 @@ This document contains the help content for the `PhotosNorm` command-line progra
 
 ## `PhotosNorm`
 
-Automatic rotate, rename and exif fix
+PhotosNorm: A simple tool to lossless manipulate images properties.
 
-**Usage:** `PhotosNorm info <FILES>...
-       PhotosNorm set [OPTIONS] <--description <DESCRIPTION>|--date <DATE>> <FILES>...
-       PhotosNorm fix [OPTIONS] <FILES>...
+info: display some EXIF info.
+set:  Update some EXIF tags. More info below or with set --help.
+fix:  Fix properties like orientation, file name, ... More info below or with fix --help.
+
+To each command, you can provide one or more files and/or folders.
+Each known files (aka images) will be processed, other ones will be ignored.
+For each folder, all files within will be analysed like described just before. Sub-folders will be ignored (this is non-recursive).
+
+**Usage:** `PhotosNorm info <IMAGES/FOLDERS>...
+       PhotosNorm set [OPTIONS] <--description <DESCRIPTION>|--date <DATE>> <IMAGES/FOLDERS>...
+       PhotosNorm fix [OPTIONS] <IMAGES/FOLDERS>...
        PhotosNorm help [COMMAND]...`
 
 ###### **Subcommands:**
 
-* `info` — info: Print some metadata from provided files
+* `info` — info: display some EXIF info
 * `set` — set: Update tags
 * `fix` — fix: Fix file properties
 
@@ -28,13 +36,13 @@ Automatic rotate, rename and exif fix
 
 ## `PhotosNorm info`
 
-info: Print some metadata from provided files
+info: display some EXIF info
 
-**Usage:** `PhotosNorm info <FILES>...`
+**Usage:** `PhotosNorm info <IMAGES/FOLDERS>...`
 
 ###### **Arguments:**
 
-* `<FILES>` — images to load
+* `<IMAGES/FOLDERS>` — images to load
 
 
 
@@ -42,11 +50,11 @@ info: Print some metadata from provided files
 
 set: Update tags
 
-**Usage:** `PhotosNorm set [OPTIONS] <--description <DESCRIPTION>|--date <DATE>> <FILES>...`
+**Usage:** `PhotosNorm set [OPTIONS] <--description <DESCRIPTION>|--date <DATE>> <IMAGES/FOLDERS>...`
 
 ###### **Arguments:**
 
-* `<FILES>` — images to update
+* `<IMAGES/FOLDERS>` — images to update
 
 ###### **Options:**
 
@@ -60,11 +68,11 @@ set: Update tags
 
 fix: Fix file properties
 
-**Usage:** `PhotosNorm fix [OPTIONS] <FILES>...`
+**Usage:** `PhotosNorm fix [OPTIONS] <IMAGES/FOLDERS>...`
 
 ###### **Arguments:**
 
-* `<FILES>` — images to fix
+* `<IMAGES/FOLDERS>` — images to fix
 
 ###### **Options:**
 
