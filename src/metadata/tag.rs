@@ -1,8 +1,9 @@
-use enumset::EnumSet;
 use enumset::EnumSetType;
 use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
+
+use super::Metadata;
 
 #[derive(EnumSetType, Debug)]
 pub enum Tag {
@@ -19,19 +20,19 @@ impl Display for Tag {
     }
 }
 
-pub trait DisplayEnumSet {
-    fn to_string_coma(&self) -> String;
+pub trait DisplayWithComment {
+    fn to_string_comment(&self, metadata: &Metadata) -> String;
 }
 
-impl DisplayEnumSet for EnumSet<Tag> {
-    fn to_string_coma(&self) -> String {
-        if self.is_empty() {
-            "None".to_string()
-        } else {
-            self.iter()
-                .map(|t| t.to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
+impl DisplayWithComment for Tag {
+    fn to_string_comment(&self, metadata: &Metadata) -> String {
+        match self {
+            Tag::FileName => format!(
+                "{}({})",
+                self,
+                metadata.path.file_name().unwrap().to_string_lossy()
+            ),
+            _ => self.to_string(),
         }
     }
 }

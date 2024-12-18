@@ -1,4 +1,3 @@
-use crate::metadata::tag::DisplayEnumSet;
 use clap::{builder::ArgPredicate, Args, CommandFactory, Parser, Subcommand};
 use clap_markdown::MarkdownOptions;
 use colored::Colorize;
@@ -232,7 +231,7 @@ fn main() -> Result<(), std::io::Error> {
                         print_table!("Error!".red(), e);
                     }
                     Ok(tags) => {
-                        print_table!("Updated tags:", tags.to_string_coma());
+                        print_table!("Updated tags:", metadata.tags_to_string(&tags));
                     }
                 }
             }
@@ -251,7 +250,7 @@ fn main() -> Result<(), std::io::Error> {
                         print_table!("Error!".red(), e);
                     }
                     Ok(tags) => {
-                        print_table!("Updated tags:", tags.to_string_coma());
+                        print_table!("Updated tags:", metadata.tags_to_string(&tags));
                     }
                 }
             }

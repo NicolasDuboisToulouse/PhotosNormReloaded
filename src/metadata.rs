@@ -14,7 +14,7 @@ use std::{
     io::Error,
     path::{Path, PathBuf},
 };
-use tag::Tag;
+use tag::{DisplayWithComment, Tag};
 
 pub mod add_extention;
 pub mod camera_info;
@@ -414,6 +414,17 @@ impl Metadata {
             .get_tag(tag)
             .next()
             .map(|tag| iR64::from_u8_vec(&tag.value_as_u8_vec(&endian), &endian))
+    }
+
+    pub fn tags_to_string(&self, tags: &EnumSet<Tag>) -> String {
+        if tags.is_empty() {
+            "None".to_string()
+        } else {
+            tags.iter()
+                .map(|t| t.to_string_comment(self))
+                .collect::<Vec<_>>()
+                .join(", ")
+        }
     }
 
     fn flash_code_to_string(flash_code: u16) -> String {
