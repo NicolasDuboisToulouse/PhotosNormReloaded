@@ -1,6 +1,6 @@
 [package]
 name = "PhotosNorm"
-version = "0.0.1"
+version = "1.0.0"
 edition = "2021"
 description = "A simple tool to lossless manipulate image properties"
 readme = "README.md"
