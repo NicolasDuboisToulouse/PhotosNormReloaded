@@ -1,0 +1,12 @@
+[package]
+name = "gui"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "photosnorm_gui"
+path = "src/main.rs"
+
+[dependencies]
+core = { path = "../core" }
+eframe = { version = "0.30.0", features = [ "persistence" ] }
