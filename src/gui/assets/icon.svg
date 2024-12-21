@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Gravit.io -->
+
+<svg
+   style="isolation:isolate"
+   viewBox="0 0 408 408"
+   width="408"
+   height="408"
+   version="1.1"
+   id="svg17"
+   sodipodi:docname="icon.svg"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview17"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showguides="true"
+     inkscape:zoom="1.1867647"
+     inkscape:cx="150.40892"
+     inkscape:cy="222.03222"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g17">
+    <inkscape:page
+       x="0"
+       y="0"
+       width="408"
+       height="408"
+       id="page2"
+       margin="0"
+       bleed="0" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1">
+    <clipPath
+       id="_clipPath_jnPXnDMIeIgMLKkHCLs8xrbA0qyzm0WR">
+      <rect
+         width="450"
+         height="450"
+         id="rect1"
+         x="0"
+         y="0" />
+    </clipPath>
+    <filter
+       style="color-interpolation-filters:sRGB;"
+       inkscape:label="Color Shift"
+       id="filter234"
+       x="0"
+       y="0"
+       width="1"
+       height="1">
+      <feColorMatrix
+         type="hueRotate"
+         values="259"
+         result="color1"
+         id="feColorMatrix233" />
+      <feColorMatrix
+         type="saturate"
+         values="0.6"
+         result="color2"
+         id="feColorMatrix234" />
+    </filter>
+    <filter
+       style="color-interpolation-filters:sRGB;"
+       inkscape:label="Color Shift"
+       id="filter236"
+       x="0"
+       y="0"
+       width="1"
+       height="1">
+      <feColorMatrix
+         type="hueRotate"
+         values="259"
+         result="color1"
+         id="feColorMatrix235" />
+      <feColorMatrix
+         type="saturate"
+         values="0.6"
+         result="color2"
+         id="feColorMatrix236" />
+    </filter>
+    <filter
+       style="color-interpolation-filters:sRGB;"
+       inkscape:label="Color Shift"
+       id="filter238"
+       x="0"
+       y="0"
+       width="1"
+       height="1">
+      <feColorMatrix
+         type="hueRotate"
+         values="259"
+         result="color1"
+         id="feColorMatrix237" />
+      <feColorMatrix
+         type="saturate"
+         values="0.6"
+         result="color2"
+         id="feColorMatrix238" />
+    </filter>
+    <filter
+       style="color-interpolation-filters:sRGB;"
+       inkscape:label="Color Shift"
+       id="filter240"
+       x="0"
+       y="0"
+       width="1"
+       height="1">
+      <feColorMatrix
+         type="hueRotate"
+         values="259"
+         result="color1"
+         id="feColorMatrix239" />
+      <feColorMatrix
+         type="saturate"
+         values="0.6"
+         result="color2"
+         id="feColorMatrix240" />
+    </filter>
+    <filter
+       style="color-interpolation-filters:sRGB;"
+       inkscape:label="Color Shift"
+       id="filter242"
+       x="0"
+       y="0"
+       width="1"
+       height="1">
+      <feColorMatrix
+         type="hueRotate"
+         values="259"
+         result="color1"
+         id="feColorMatrix241" />
+      <feColorMatrix
+         type="saturate"
+         values="0.6"
+         result="color2"
+         id="feColorMatrix242" />
+    </filter>
+    <filter
+       style="color-interpolation-filters:sRGB;"
+       inkscape:label="Color Shift"
+       id="filter244"
+       x="0"
+       y="0"
+       width="1"
+       height="1">
+      <feColorMatrix
+         type="hueRotate"
+         values="259"
+         result="color1"
+         id="feColorMatrix243" />
+      <feColorMatrix
+         type="saturate"
+         values="0.6"
+         result="color2"
+         id="feColorMatrix244" />
+    </filter>
+  </defs>
+  <g
+     clip-path="url(#_clipPath_jnPXnDMIeIgMLKkHCLs8xrbA0qyzm0WR)"
+     id="g17"
+     transform="matrix(1,0,0,1.2,-3.999,-4.8)">
+    <rect
+       x="9.6660004"
+       y="9.6669998"
+       width="396.66699"
+       height="328.66699"
+       fill="#ffffff"
+       id="rect2" />
+    <path
+       d="M 400.666,15.333 V 332.667 H 15.333 V 15.333 Z M 411.999,4 h -408 v 340 h 408 z"
+       fill="#788b9c"
+       id="path2" />
+    <rect
+       x="49.333"
+       y="49.333"
+       width="317.33301"
+       height="213.713"
+       fill="#b5deff"
+       id="rect3" />
+    <rect
+       x="49.333"
+       y="189.58299"
+       width="317.33301"
+       height="109.083"
+       fill="#99c9f0"
+       id="rect4"
+       style="filter:url(#filter234)" />
+    <path
+       d="m 350.799,127.25 c -5.224,0 -9.826,2.516 -12.716,6.347 -5.315,-3.933 -11.843,-6.347 -19.017,-6.347 -7.174,0 -13.702,2.414 -19.017,6.347 -2.722,-3.638 -6.87,-5.937 -11.398,-6.316 -4.527,-0.38 -9,1.198 -12.289,4.332 -5.858,-10.473 -18.602,-14.939 -29.716,-10.415 -6.004,-6.109 -14.214,-9.545 -22.78,-9.531 -13.371,-0.04 -25.32,8.338 -29.841,20.921 -5.263,-3.492 -11.442,-5.35 -17.759,-5.338 -6.585,0 -12.693,1.972 -17.759,5.338 -4.521,-12.583 -16.47,-20.961 -29.841,-20.921 -8.953,0 -17.011,3.672 -22.78,9.531 -11.114,-4.53 -23.861,-0.062 -29.716,10.415 -2.966,-2.801 -6.891,-4.362 -10.971,-4.363 -8.76,0 -15.866,6.981 -15.866,15.583 v 93.5 h 317.333 v -93.5 c 0,-8.602 -7.106,-15.583 -15.867,-15.583 z"
+       fill="#d9f6ff"
+       id="path4" />
+    <path
+       d="M 53.141,242 H 366.666 V 223.81 L 268.689,169.229 Z"
+       fill="#6e9ee0"
+       id="path5"
+       style="filter:url(#filter236)" />
+    <path
+       d="m 275.433,242 h -226.1 v -33.082 l 106.85,-46.251 z"
+       fill="#77a9ed"
+       id="path6"
+       style="filter:url(#filter238)" />
+    <path
+       d="m 179.156,255.396 4.454,77.271 h 112.483 l -60.724,-77.271 z"
+       fill="#c5d4de"
+       id="path7"
+       style="filter:url(#filter240)" />
+    <path
+       d="m 177.977,236.843 3.57,61.824 h 89.976 l -48.586,-61.824 z"
+       fill="#7fa6c7"
+       id="path8"
+       style="filter:url(#filter242)" />
+    <path
+       d="m 178.227,242 h 49.492 l -52.269,-66.515 -1.122,-0.748 z"
+       fill="#6089bf"
+       id="path9"
+       style="filter:url(#filter244)" />
+    <ellipse
+       style="fill:#ffcc00;fill-opacity:1;stroke:none;stroke-width:1.77407;stroke-opacity:1"
+       id="path244"
+       cx="117.33233"
+       cy="98.444435"
+       rx="43.395"
+       ry="36.162743" />
+  </g>
+</svg>

@@ -9,3 +9,6 @@ description = "A simple tool to lossless manipulate image properties"
 readme = "README.md"
 license-file = "LICENSE"
 repository = "https://github.com/NicolasDuboisToulouse/PhotosNormReloaded"
+
+[workspace.dependencies]
+image = "0.25.5"

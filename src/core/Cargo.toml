@@ -4,9 +4,10 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+image.workspace = true
+
 chrono = "0.4.38"
 enumset = "1.1.5"
-image = "0.25.5"
 infer = "0.16.0"
 #little_exif = "0.6.2"
 little_exif = { git = "https://github.com/NicolasDuboisToulouse/little_exif" }
