@@ -1,15 +1,15 @@
 # PhotosNorm
 
-This document contains the help content for the `PhotosNorm` command-line program.
+This document contains the help content for the `photosnorm` command-line program.
 
 **Command Overview:**
 
-* [`PhotosNorm`↴](#PhotosNorm)
-* [`PhotosNorm info`↴](#PhotosNorm-info)
-* [`PhotosNorm set`↴](#PhotosNorm-set)
-* [`PhotosNorm fix`↴](#PhotosNorm-fix)
+* [`photosnorm`↴](#photosnorm)
+* [`photosnorm info`↴](#photosnorm-info)
+* [`photosnorm set`↴](#photosnorm-set)
+* [`photosnorm fix`↴](#photosnorm-fix)
 
-## `PhotosNorm`
+## `photosnorm`
 
 PhotosNorm: A simple tool to lossless manipulate images properties.
 
@@ -21,10 +21,10 @@ To each command, you can provide one or more files and/or folders.
 Each known files (aka images) will be processed, other ones will be ignored.
 For each folder, all files within will be analysed like described just before. Sub-folders will be ignored (this is non-recursive).
 
-**Usage:** `PhotosNorm info <IMAGES/FOLDERS>...
-       PhotosNorm set [OPTIONS] <--description <DESCRIPTION>|--date <DATE>> <IMAGES/FOLDERS>...
-       PhotosNorm fix [OPTIONS] <IMAGES/FOLDERS>...
-       PhotosNorm help [COMMAND]...`
+**Usage:** `photosnorm info <IMAGES/FOLDERS>...
+       photosnorm set [OPTIONS] <--description <DESCRIPTION>|--date <DATE>> <IMAGES/FOLDERS>...
+       photosnorm fix [OPTIONS] <IMAGES/FOLDERS>...
+       photosnorm help [COMMAND]...`
 
 ###### **Subcommands:**
 
@@ -34,11 +34,11 @@ For each folder, all files within will be analysed like described just before. S
 
 
 
-## `PhotosNorm info`
+## `photosnorm info`
 
 info: display some EXIF info
 
-**Usage:** `PhotosNorm info <IMAGES/FOLDERS>...`
+**Usage:** `photosnorm info <IMAGES/FOLDERS>...`
 
 ###### **Arguments:**
 
@@ -46,11 +46,11 @@ info: display some EXIF info
 
 
 
-## `PhotosNorm set`
+## `photosnorm set`
 
 set: Update tags
 
-**Usage:** `PhotosNorm set [OPTIONS] <--description <DESCRIPTION>|--date <DATE>> <IMAGES/FOLDERS>...`
+**Usage:** `photosnorm set [OPTIONS] <--description <DESCRIPTION>|--date <DATE>> <IMAGES/FOLDERS>...`
 
 ###### **Arguments:**
 
@@ -64,11 +64,11 @@ set: Update tags
 
 
 
-## `PhotosNorm fix`
+## `photosnorm fix`
 
 fix: Fix file properties
 
-**Usage:** `PhotosNorm fix [OPTIONS] <IMAGES/FOLDERS>...`
+**Usage:** `photosnorm fix [OPTIONS] <IMAGES/FOLDERS>...`
 
 ###### **Arguments:**
 

@@ -1,12 +1,11 @@
 use clap::{builder::ArgPredicate, Args, CommandFactory, Parser, Subcommand};
 use clap_markdown::MarkdownOptions;
 use colored::Colorize;
-use metadata::Metadata;
+use core::metadata::Metadata;
 use std::fs;
 
-mod metadata;
-
-const CARGO_PKG_NAME: &str = env!("CARGO_PKG_NAME");
+const CARGO_BIN_NAME: &str = env!("CARGO_BIN_NAME");
+const PROJECT_NAME: &str = "PhotosNorm";
 
 pub const DOC: &str = "PhotosNorm: A simple tool to lossless manipulate images properties.\n\
                        \n\
@@ -20,7 +19,7 @@ pub const DOC: &str = "PhotosNorm: A simple tool to lossless manipulate images p
                        ignored (this is non-recursive).";
 
 #[derive(Parser)]
-#[command(version, about = DOC, long_about = None)]
+#[command(version, about = DOC, long_about = None, name=CARGO_BIN_NAME)]
 #[command(propagate_version = true)]
 #[command(flatten_help = true)]
 struct Cli {
@@ -130,7 +129,7 @@ fn main() -> Result<(), std::io::Error> {
             let readme_text = clap_markdown::help_markdown_command_custom(
                 &Cli::command(),
                 &MarkdownOptions::new()
-                    .title(CARGO_PKG_NAME.to_string())
+                    .title(PROJECT_NAME.to_string())
                     .show_footer(false)
                     .show_table_of_contents(true),
             );

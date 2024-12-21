@@ -1,0 +1,14 @@
+[package]
+name = "cli"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "photosnorm"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5.21", features = ["derive"]}
+clap-markdown = "0.1.4"
+colored = "2.2.0"
+core = { path = "../core" }
