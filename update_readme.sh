@@ -1,2 +1,2 @@
 #!/bin/bash
-cargo run -- generate-readme-md
+cargo run --bin photosnorm -- generate-readme-md
