@@ -12,6 +12,7 @@ image.workspace = true
 
 core = { path = "../core" }
 eframe = { version = "0.30.0", features = [ "persistence" ] }
+egui_extras = { version = "0.30.0", features = ["default", "all_loaders"] }
 
 [build-dependencies]
 winresource = "0.1.19"
