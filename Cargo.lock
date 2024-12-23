@@ -1283,6 +1283,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_taffy"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62eec85c4af2fdf76707b33ade75c1de00dc6c9bbb30d3d95db6cba84a6b6e34"
+dependencies = [
+ "egui",
+ "log",
+ "taffy",
+]
+
+[[package]]
 name = "ehttp"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1801,12 +1812,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "grid"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36119f3a540b086b4e436bb2b588cf98a68863470e0e880f4d0842f112a3183a"
+
+[[package]]
 name = "gui"
 version = "1.0.0"
 dependencies = [
  "core",
  "eframe",
  "egui_extras",
+ "egui_taffy",
  "image",
  "winresource",
 ]
@@ -3565,6 +3583,19 @@ dependencies = [
  "pkg-config",
  "toml",
  "version-compare",
+]
+
+[[package]]
+name = "taffy"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf595259ca079fc86dc249d8ece0b4e822b83035daa0c0491aa4c12b1232b36c"
+dependencies = [
+ "arrayvec",
+ "grid",
+ "num-traits",
+ "serde",
+ "slotmap",
 ]
 
 [[package]]

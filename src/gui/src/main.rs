@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 mod assets;
+mod taffy_tools;
 mod welcome_pannel;
 use eframe::egui;
 use welcome_pannel::WelcomePannel;
@@ -17,8 +18,9 @@ fn main() -> eframe::Result {
         assets::PROJECT_NAME,
         native_options,
         Box::new(|cc| {
+            //            cc.egui_ctx.set_theme(egui::ThemePreference::Light);
             egui_extras::install_image_loaders(&cc.egui_ctx);
-            Ok(Box::new(WelcomePannel {}))
+            Ok(Box::<WelcomePannel>::default())
         }),
     )
 }
