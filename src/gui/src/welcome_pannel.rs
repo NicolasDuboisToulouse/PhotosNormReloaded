@@ -1,25 +1,107 @@
 use crate::assets;
 use crate::taffy_tools;
 use eframe::egui;
+use eframe::egui::Widget;
 use egui_taffy::taffy;
 use egui_taffy::{self, TuiBuilderLogic};
+use std::path::PathBuf;
 
-#[derive(Default)]
-pub struct WelcomePannel {
-    files: String,
+pub struct WelcomePannel<'a> {
+    /// list of selected paths (result)
+    paths_vec: &'a mut Vec<PathBuf>,
+    /// Semicolon-separared path list displayed in main text box
+    paths_semicolon: String,
+    /// Has user manually modified paths_semicolon ?
+    user_modified: bool,
+    /// Has user clicked on Open button ? (window not closed by another way)
+    user_close: bool,
 }
 
-/*
-impl Default for WelcomePannel {
-    fn default() -> Self {
-        Self {
-            files: String::new(),
+impl WelcomePannel<'_> {
+    ///
+    /// Display the dialog and return the list of selected paths
+    /// Return an empty Vec on user cancel or error
+    ///
+    pub fn show() -> Vec<PathBuf> {
+        let mut paths_vec: Vec<PathBuf> = Vec::new();
+
+        let pannel = WelcomePannel {
+            paths_semicolon: String::new(),
+            paths_vec: &mut paths_vec,
+            user_modified: false,
+            user_close: false,
+        };
+
+        let native_options = eframe::NativeOptions {
+            viewport: egui::ViewportBuilder {
+                icon: assets::load_app_icon(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        // Ignore error: show() will return an empty Vec
+        let _ = eframe::run_native(
+            assets::PROJECT_NAME,
+            native_options,
+            Box::new(|cc| {
+                //            cc.egui_ctx.set_theme(egui::ThemePreference::Light);
+                egui_extras::install_image_loaders(&cc.egui_ctx);
+                Ok(Box::new(pannel))
+            }),
+        );
+
+        paths_vec
+    }
+
+    /// Set paths from "browse..." button
+    fn set_paths_vec(&mut self, paths: Vec<PathBuf>) {
+        // This conversion may break non-UTF8 paths.
+        // So we keep the good result in self.paths_vec unless user modify paths_semicolon.
+        self.paths_semicolon = paths
+            .iter()
+            .map(|p| p.to_string_lossy())
+            .collect::<Vec<_>>()
+            .join(";");
+        *self.paths_vec = paths;
+        self.user_modified = false;
+    }
+
+    /// Close has been requested
+    /// On cancel -> clear result (self.paths_vec)
+    /// On Ok -> convert paths_semicolon to paths_vec if needed and check paths
+    fn query_close(&mut self) -> bool {
+        if self.user_close {
+            if self.user_modified {
+                // (Re)build the list of paths from the user string
+                *self.paths_vec = self
+                    .paths_semicolon
+                    .split(";")
+                    .map(PathBuf::from)
+                    .collect::<Vec<_>>();
+            }
+            for path in &mut *self.paths_vec {
+                if !path.exists() {
+                    rfd::MessageDialog::new()
+                        .set_level(rfd::MessageLevel::Error)
+                        .set_title("Path not found")
+                        .set_description(format!("Path not found : {}", path.display()))
+                        .set_buttons(rfd::MessageButtons::Ok)
+                        .show();
+                    // TODO: dialog
+                    self.user_close = false;
+                    return false;
+                }
+            }
+            true
+        } else {
+            self.paths_vec.clear();
+            true
         }
     }
 }
- */
 
-impl eframe::App for WelcomePannel {
+impl eframe::App for WelcomePannel<'_> {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ctx.style_mut(|style| {
@@ -41,6 +123,10 @@ impl eframe::App for WelcomePannel {
                     ..Default::default()
                 })
                 .show(|tui| {
+                    if ctx.input(|i| i.viewport().close_requested()) && !self.query_close() {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                    }
+
                     // Splash image, 60% height
                     tui.style(taffy::Style {
                         flex_grow: 0.,
@@ -74,20 +160,42 @@ impl eframe::App for WelcomePannel {
                         ..Default::default()
                     })
                     .add(|tui| {
-                        tui.style(taffy::Style {
-                            flex_grow: 1.,
-                            ..Default::default()
-                        })
-                        .ui_add(
-                            egui::TextEdit::singleline(&mut self.files)
-                                .desired_width(f32::INFINITY),
-                        );
+                        let paths_responce = tui
+                            .style(taffy::Style {
+                                flex_grow: 1.,
+                                ..Default::default()
+                            })
+                            .ui_add(
+                                egui::TextEdit::singleline(&mut self.paths_semicolon)
+                                    .desired_width(f32::INFINITY),
+                            );
+                        if paths_responce.changed() {
+                            self.user_modified = true;
+                        }
+
                         tui.style(taffy::Style {
                             flex_grow: 0.,
                             ..Default::default()
                         })
                         .ui(|ui| {
-                            ui.add(egui::Button::new("Select images or folders ..."));
+                            let button = egui::Button::new("images...");
+                            if button.ui(ui).clicked() {
+                                if let Some(paths) = rfd::FileDialog::new().pick_files() {
+                                    self.set_paths_vec(paths);
+                                }
+                            }
+                        });
+                        tui.style(taffy::Style {
+                            flex_grow: 0.,
+                            ..Default::default()
+                        })
+                        .ui(|ui| {
+                            let button = egui::Button::new("folders...");
+                            if button.ui(ui).clicked() {
+                                if let Some(paths) = rfd::FileDialog::new().pick_folders() {
+                                    self.set_paths_vec(paths);
+                                }
+                            }
                         });
                     });
 
@@ -106,7 +214,14 @@ impl eframe::App for WelcomePannel {
                         ..Default::default()
                     })
                     .ui(|ui| {
-                        ui.add(egui::Button::new("Open !"));
+                        let button = egui::Button::new("Open !");
+                        if ui
+                            .add_enabled(!self.paths_semicolon.is_empty(), button)
+                            .clicked()
+                        {
+                            self.user_close = true;
+                            ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
                     });
                 });
         });

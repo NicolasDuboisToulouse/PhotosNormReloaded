@@ -2,25 +2,18 @@
 mod assets;
 mod taffy_tools;
 mod welcome_pannel;
-use eframe::egui;
 use welcome_pannel::WelcomePannel;
 
 fn main() -> eframe::Result {
-    let native_options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder {
-            icon: assets::load_app_icon(),
-            ..Default::default()
-        },
-        ..Default::default()
-    };
+    let paths = WelcomePannel::show();
+    println!(
+        "Paths: {}",
+        paths
+            .iter()
+            .map(|f| f.to_string_lossy())
+            .collect::<Vec<_>>()
+            .join(",\n")
+    );
 
-    eframe::run_native(
-        assets::PROJECT_NAME,
-        native_options,
-        Box::new(|cc| {
-            //            cc.egui_ctx.set_theme(egui::ThemePreference::Light);
-            egui_extras::install_image_loaders(&cc.egui_ctx);
-            Ok(Box::<WelcomePannel>::default())
-        }),
-    )
+    Ok(())
 }
