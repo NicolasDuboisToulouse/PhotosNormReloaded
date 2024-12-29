@@ -2,11 +2,6 @@ use eframe::egui;
 use image::ImageReader;
 use std::{io::Cursor, sync::Arc};
 
-///
-/// Define the main application name (can we store that elsewhere ?)
-///
-pub const PROJECT_NAME: &str = "PhotosNorm";
-
 const APP_ICON: &[u8] = include_bytes!("../assets/icon.png");
 
 pub const SPLASH_ON_LIGHT: egui::ImageSource = egui::include_image!("../assets/splash.png");

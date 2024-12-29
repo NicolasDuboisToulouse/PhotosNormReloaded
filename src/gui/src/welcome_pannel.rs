@@ -1,5 +1,6 @@
 use crate::assets;
 use crate::taffy_tools;
+use core::assets as core_assets;
 use eframe::egui;
 use eframe::egui::Widget;
 use egui_taffy::taffy;
@@ -42,7 +43,7 @@ impl WelcomePannel<'_> {
 
         // Ignore error: show() will return an empty Vec
         let _ = eframe::run_native(
-            assets::PROJECT_NAME,
+            core_assets::PROJECT_NAME,
             native_options,
             Box::new(|cc| {
                 //            cc.egui_ctx.set_theme(egui::ThemePreference::Light);
@@ -107,6 +108,11 @@ impl eframe::App for WelcomePannel<'_> {
             ctx.style_mut(|style| {
                 style.wrap_mode = Some(egui::TextWrapMode::Extend);
                 style.spacing.button_padding = egui::vec2(15.0, 2.0);
+                style.interaction = eframe::egui::style::Interaction {
+                    tooltip_delay: 0.2,
+                    show_tooltips_only_when_still: false,
+                    ..Default::default()
+                }
             });
             ctx.options_mut(|options| {
                 options.max_passes = std::num::NonZeroUsize::new(15).unwrap();
@@ -172,15 +178,20 @@ impl eframe::App for WelcomePannel<'_> {
                         if paths_responce.changed() {
                             self.user_modified = true;
                         }
-
                         tui.style(taffy::Style {
                             flex_grow: 0.,
                             ..Default::default()
                         })
                         .ui(|ui| {
-                            let button = egui::Button::new("images...");
-                            if button.ui(ui).clicked() {
-                                if let Some(paths) = rfd::FileDialog::new().pick_files() {
+                            let button = egui::Button::new("folders...");
+                            if button
+                                .ui(ui)
+                                .on_hover_ui(|ui| {
+                                    ui.label("Load all images within folder(s) (non-recursive)");
+                                })
+                                .clicked()
+                            {
+                                if let Some(paths) = rfd::FileDialog::new().pick_folders() {
                                     self.set_paths_vec(paths);
                                 }
                             }
@@ -190,9 +201,15 @@ impl eframe::App for WelcomePannel<'_> {
                             ..Default::default()
                         })
                         .ui(|ui| {
-                            let button = egui::Button::new("folders...");
-                            if button.ui(ui).clicked() {
-                                if let Some(paths) = rfd::FileDialog::new().pick_folders() {
+                            let button = egui::Button::new("images...");
+                            if button
+                                .ui(ui)
+                                .on_hover_ui(|ui| {
+                                    ui.label("Load individual image(s)");
+                                })
+                                .clicked()
+                            {
+                                if let Some(paths) = rfd::FileDialog::new().pick_files() {
                                     self.set_paths_vec(paths);
                                 }
                             }
@@ -217,6 +234,12 @@ impl eframe::App for WelcomePannel<'_> {
                         let button = egui::Button::new("Open !");
                         if ui
                             .add_enabled(!self.paths_semicolon.is_empty(), button)
+                            .on_hover_ui(|ui| {
+                                ui.label("Just load images! Do not modify them yet!");
+                            })
+                            .on_disabled_hover_ui(|ui| {
+                                ui.label("Just load images! Do not modify them yet!");
+                            })
                             .clicked()
                         {
                             self.user_close = true;
