@@ -8,8 +8,8 @@ name = "photosnorm_gui"
 path = "src/main.rs"
 
 [dependencies]
+clap.workspace = true
 image.workspace = true
-
 core = { path = "../core" }
 eframe = { version = "0.30.0", features = [ "persistence" ] }
 egui_extras = { version = "0.30.0", features = ["default", "all_loaders"] }

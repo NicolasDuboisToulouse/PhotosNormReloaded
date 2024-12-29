@@ -2,10 +2,39 @@
 mod assets;
 mod taffy_tools;
 mod welcome_pannel;
+use clap::Parser;
 use welcome_pannel::WelcomePannel;
 
+const CARGO_BIN_NAME: &str = env!("CARGO_BIN_NAME");
+
+pub const DOC: &str = "PhotosNorm: A simple tool to lossless manipulate images properties.\n\
+                       \n\
+                       The GUI will display images and allows to modify some EXIF tags.\n\
+                       It will also allows to fix properties like orientation, file name, ...\n\
+                       \n\
+                       You can provide one or more files and/or folders.\n\
+                       Each known files (aka images) will be processed, other ones will be ignored.\n\
+                       For each folder, all files within will be analysed like described just before. Sub-folders will be \
+                       ignored (this is non-recursive).";
+
+#[derive(Parser)]
+#[command(version, about = DOC, long_about = None, name=CARGO_BIN_NAME)]
+#[command(propagate_version = true)]
+#[command(flatten_help = true)]
+struct Cli {
+    /// images to load
+    #[clap(required = false, value_name = "IMAGES/FOLDERS")]
+    files: Vec<std::path::PathBuf>,
+}
+
 fn main() -> eframe::Result {
-    let paths = WelcomePannel::show();
+    let args = Cli::parse();
+    let paths = if args.files.is_empty() {
+        WelcomePannel::show()
+    } else {
+        args.files
+    };
+
     println!(
         "Paths: {}",
         paths
