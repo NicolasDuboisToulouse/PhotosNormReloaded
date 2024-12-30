@@ -3,7 +3,7 @@ use clap_markdown::MarkdownOptions;
 use colored::Colorize;
 use core::assets;
 use core::metadata::Metadata;
-use std::fs;
+use core::tools;
 
 const CARGO_BIN_NAME: &str = env!("CARGO_BIN_NAME");
 
@@ -35,7 +35,7 @@ enum Commands {
 struct InfoArgs {
     /// images to load
     #[clap(required = true, value_name = "IMAGES/FOLDERS")]
-    files: Vec<std::path::PathBuf>,
+    paths: Vec<std::path::PathBuf>,
 }
 
 #[derive(Args, Debug)]
@@ -49,7 +49,7 @@ struct SetArgs {
 
     /// images to update
     #[clap(required = true, value_name = "IMAGES/FOLDERS")]
-    files: Vec<std::path::PathBuf>,
+    paths: Vec<std::path::PathBuf>,
 }
 #[derive(Args, Debug)]
 #[group(required = true, multiple = true)]
@@ -79,7 +79,7 @@ struct FixArgs {
 
     /// images to fix
     #[clap(required = true, value_name = "IMAGES/FOLDERS")]
-    files: Vec<std::path::PathBuf>,
+    paths: Vec<std::path::PathBuf>,
 }
 
 #[derive(Args, Debug)]
@@ -109,11 +109,11 @@ macro_rules! print_table {
 fn main() -> Result<(), std::io::Error> {
     let args = Cli::parse();
 
-    // Parse command and grab file list
-    let files = match &args.command {
-        Commands::Info(args) => &args.files,
-        Commands::Set(args) => &args.files,
-        Commands::Fix(args) => &args.files,
+    // Parse command and grab path list
+    let paths = match &args.command {
+        Commands::Info(args) => &args.paths,
+        Commands::Set(args) => &args.paths,
+        Commands::Fix(args) => &args.paths,
         Commands::GenerateReadmeMd => {
             let readme_text = clap_markdown::help_markdown_command_custom(
                 &Cli::command(),
@@ -122,33 +122,12 @@ fn main() -> Result<(), std::io::Error> {
                     .show_footer(false)
                     .show_table_of_contents(true),
             );
-            fs::write("README.md", readme_text).expect("Unable to write README.md");
+            std::fs::write("README.md", readme_text).expect("Unable to write README.md");
             return Ok(());
         }
     };
 
-    // list images from file list (aka read folders)
-    let mut images: Vec<std::path::PathBuf> = Vec::new();
-    for file in files.iter() {
-        if !file.is_dir() {
-            images.push(file.to_path_buf());
-        } else {
-            match fs::read_dir(file) {
-                // Let open display the error and process next file.
-                Err(_) => images.push(file.to_path_buf()),
-                // Add all files to image list
-                Ok(files) => {
-                    for entry in files {
-                        let file = entry.unwrap().path();
-                        // non-recursive
-                        if file.is_file() {
-                            images.push(file.to_path_buf());
-                        }
-                    }
-                }
-            }
-        }
-    }
+    let images = tools::expand_folders(paths);
 
     // Check parameters
     if let Commands::Set(ref args) = args.command {

@@ -3,7 +3,7 @@ mod assets;
 mod taffy_tools;
 mod welcome_pannel;
 use clap::Parser;
-use core::assets as core_assets;
+use core::{assets as core_assets, tools};
 use welcome_pannel::WelcomePannel;
 
 const CARGO_BIN_NAME: &str = env!("CARGO_BIN_NAME");
@@ -26,14 +26,8 @@ fn main() -> eframe::Result {
         args.files
     };
 
-    println!(
-        "Paths: {}",
-        paths
-            .iter()
-            .map(|f| f.to_string_lossy())
-            .collect::<Vec<_>>()
-            .join(",\n")
-    );
+    let images = tools::expand_folders(&paths);
+    println!("Images: {:?}", images);
 
     Ok(())
 }
