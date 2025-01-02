@@ -1,9 +1,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 mod assets;
+mod main_pannel;
 mod taffy_tools;
 mod welcome_pannel;
 use clap::Parser;
 use core::{assets as core_assets, tools};
+use main_pannel::MainPannel;
 use welcome_pannel::WelcomePannel;
 
 const CARGO_BIN_NAME: &str = env!("CARGO_BIN_NAME");
@@ -27,7 +29,10 @@ fn main() -> eframe::Result {
     };
 
     let images = tools::expand_folders(&paths);
-    println!("Images: {:?}", images);
+
+    if !images.is_empty() {
+        return MainPannel::show(&images);
+    }
 
     Ok(())
 }

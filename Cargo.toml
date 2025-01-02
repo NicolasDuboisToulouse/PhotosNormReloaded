@@ -10,6 +10,10 @@ readme = "README.md"
 license-file = "LICENSE"
 repository = "https://github.com/NicolasDuboisToulouse/PhotosNormReloaded"
 
+[profile.dev.package."*"]
+# Optimize all dependencies even in debug builds (does not affect workspace packages):
+opt-level = 2
+
 [workspace.dependencies]
 clap = { version = "4.5.21", features = ["derive"]}
 image = "0.25.5"

@@ -105,19 +105,7 @@ impl WelcomePannel<'_> {
 impl eframe::App for WelcomePannel<'_> {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ctx.style_mut(|style| {
-                style.wrap_mode = Some(egui::TextWrapMode::Extend);
-                style.spacing.button_padding = egui::vec2(15.0, 2.0);
-                style.interaction = eframe::egui::style::Interaction {
-                    tooltip_delay: 0.2,
-                    show_tooltips_only_when_still: false,
-                    ..Default::default()
-                }
-            });
-            ctx.options_mut(|options| {
-                options.max_passes = std::num::NonZeroUsize::new(15).unwrap();
-            });
-
+            assets::init_egui_ctx(ctx);
             // Main widget, fill wall space
             egui_taffy::tui(ui, ui.id().with("welcome"))
                 .reserve_available_space()
