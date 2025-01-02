@@ -51,12 +51,7 @@ impl FromTaffySize for egui::Vec2 {
 ///
 /// Create a Rect<LengthPercentage>
 ///
-pub fn rect_lp(
-    top: f32,
-    bottom: f32,
-    left: f32,
-    right: f32,
-) -> taffy::Rect<taffy::LengthPercentage> {
+pub fn rect_lp(top: f32, bottom: f32, left: f32, right: f32) -> taffy::Rect<taffy::LengthPercentage> {
     taffy::Rect {
         top: taffy::LengthPercentage::Length(top),
         bottom: taffy::LengthPercentage::Length(bottom),

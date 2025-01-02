@@ -1,12 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 mod assets;
-mod main_pannel;
+mod main_panel;
 mod taffy_tools;
-mod welcome_pannel;
+mod welcome_panel;
 use clap::Parser;
 use core::{assets as core_assets, tools};
-use main_pannel::MainPannel;
-use welcome_pannel::WelcomePannel;
+use main_panel::MainPanel;
+use welcome_panel::WelcomePanel;
 
 const CARGO_BIN_NAME: &str = env!("CARGO_BIN_NAME");
 
@@ -23,7 +23,7 @@ struct Cli {
 fn main() -> eframe::Result {
     let args = Cli::parse();
     let paths = if args.files.is_empty() {
-        WelcomePannel::show()
+        WelcomePanel::show()
     } else {
         args.files
     };
@@ -31,7 +31,7 @@ fn main() -> eframe::Result {
     let images = tools::expand_folders(&paths);
 
     if !images.is_empty() {
-        return MainPannel::show(&images);
+        return MainPanel::show(&images);
     }
 
     Ok(())

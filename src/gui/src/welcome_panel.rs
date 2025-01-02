@@ -7,10 +7,10 @@ use egui_taffy::taffy;
 use egui_taffy::{self, TuiBuilderLogic};
 use std::path::PathBuf;
 
-pub struct WelcomePannel<'a> {
+pub struct WelcomePanel<'a> {
     /// list of selected paths (result)
     paths_vec: &'a mut Vec<PathBuf>,
-    /// Semicolon-separared path list displayed in main text box
+    /// Semicolon-separated path list displayed in main text box
     paths_semicolon: String,
     /// Has user manually modified paths_semicolon ?
     user_modified: bool,
@@ -18,7 +18,7 @@ pub struct WelcomePannel<'a> {
     user_close: bool,
 }
 
-impl WelcomePannel<'_> {
+impl WelcomePanel<'_> {
     ///
     /// Display the dialog and return the list of selected paths
     /// Return an empty Vec on user cancel or error
@@ -26,7 +26,7 @@ impl WelcomePannel<'_> {
     pub fn show() -> Vec<PathBuf> {
         let mut paths_vec: Vec<PathBuf> = Vec::new();
 
-        let pannel = WelcomePannel {
+        let panel = WelcomePanel {
             paths_semicolon: String::new(),
             paths_vec: &mut paths_vec,
             user_modified: false,
@@ -48,7 +48,7 @@ impl WelcomePannel<'_> {
             Box::new(|cc| {
                 //            cc.egui_ctx.set_theme(egui::ThemePreference::Light);
                 egui_extras::install_image_loaders(&cc.egui_ctx);
-                Ok(Box::new(pannel))
+                Ok(Box::new(panel))
             }),
         );
 
@@ -70,7 +70,7 @@ impl WelcomePannel<'_> {
 
     /// Close has been requested
     /// On cancel -> clear result (self.paths_vec)
-    /// On Ok -> convert paths_semicolon to paths_vec if needed and check paths
+    /// On OK -> convert paths_semicolon to paths_vec if needed and check paths
     fn query_close(&mut self) -> bool {
         if self.user_close {
             if self.user_modified {
@@ -102,7 +102,7 @@ impl WelcomePannel<'_> {
     }
 }
 
-impl eframe::App for WelcomePannel<'_> {
+impl eframe::App for WelcomePanel<'_> {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             assets::init_egui_ctx(ctx);
@@ -134,12 +134,8 @@ impl eframe::App for WelcomePannel<'_> {
                     .ui(|ui| {
                         ui.centered_and_justified(|ui| {
                             ui.add(match ctx.theme() {
-                                egui::Theme::Light => {
-                                    egui::widgets::Image::new(assets::SPLASH_ON_LIGHT)
-                                }
-                                egui::Theme::Dark => {
-                                    egui::widgets::Image::new(assets::SPLASH_ON_DARK)
-                                }
+                                egui::Theme::Light => egui::widgets::Image::new(assets::SPLASH_ON_LIGHT),
+                                egui::Theme::Dark => egui::widgets::Image::new(assets::SPLASH_ON_DARK),
                             });
                         });
                     });

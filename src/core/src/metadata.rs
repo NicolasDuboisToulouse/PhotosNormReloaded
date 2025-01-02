@@ -1,12 +1,11 @@
-use add_extention::AddExtention;
+use add_extension::AddExtension;
 use camera_info::CameraInfo;
 use chrono::NaiveDateTime;
 use enumset::EnumSet;
 use image::image_dimensions;
 use little_exif::rational::iR64;
 use little_exif::{
-    exif_tag::ExifTag, metadata::Metadata as LittleMetadata, rational::uR64,
-    u8conversion::U8conversion,
+    exif_tag::ExifTag, metadata::Metadata as LittleMetadata, rational::uR64, u8conversion::U8conversion,
 };
 use std::ffi::OsStr;
 use std::fs::rename;
@@ -16,7 +15,7 @@ use std::{
 };
 use tag::{DisplayWithComment, Tag};
 
-pub mod add_extention;
+pub mod add_extension;
 pub mod camera_info;
 pub mod tag;
 
@@ -42,7 +41,7 @@ pub struct Metadata {
     path: PathBuf,
     mime: String,
     litte_metadata: LittleMetadata,
-    dimentions: (u32, u32),
+    dimensions: (u32, u32),
     date: Option<NaiveDateTime>,
     description: Option<String>,
     camera_info: CameraInfo,
@@ -56,12 +55,12 @@ impl Metadata {
             return Err(Error::other("Unknown file type."));
         };
         if !kind.mime_type().starts_with("image") {
-            return Err(Error::other("Unsuported file type."));
+            return Err(Error::other("Unsupported file type."));
         }
 
-        // Load dimention from image data (not from exif data)
-        let Ok(dimentions) = image_dimensions(path) else {
-            return Err(Error::other("Cannot read image dimentions."));
+        // Load dimension from image data (not from exif data)
+        let Ok(dimensions) = image_dimensions(path) else {
+            return Err(Error::other("Cannot read image dimensions."));
         };
 
         // Load little_exif metadata
@@ -71,18 +70,16 @@ impl Metadata {
         }
 
         // Load and parse date
-        let date =
-            Self::get_tag_string(&litte_metadata, &ExifTag::DateTimeOriginal(String::new())).or(
-                Self::get_tag_string(&litte_metadata, &ExifTag::CreateDate(String::new())),
-            );
+        let date = Self::get_tag_string(&litte_metadata, &ExifTag::DateTimeOriginal(String::new())).or(
+            Self::get_tag_string(&litte_metadata, &ExifTag::CreateDate(String::new())),
+        );
         let date = match date {
             None => None,
             Some(str_date) => NaiveDateTime::from_exif_string(str_date).ok(),
         };
 
         // Load description
-        let description =
-            Self::get_tag_string(&litte_metadata, &ExifTag::ImageDescription(String::new()));
+        let description = Self::get_tag_string(&litte_metadata, &ExifTag::ImageDescription(String::new()));
 
         // Load and format CameraInfo
         let make = Self::get_tag_string(&litte_metadata, &ExifTag::Make(String::new()));
@@ -128,27 +125,23 @@ impl Metadata {
                 ),
             );
 
-        let exposure_bias =
-            Self::get_tag_ir64(&litte_metadata, &ExifTag::ExposureCompensation(Vec::new())).map(
-                |v| {
-                    if v.nominator == 0 {
-                        "0".to_string()
-                    } else {
-                        format!("{}/{}", v.nominator, v.denominator)
-                    }
-                },
-            );
+        let exposure_bias = Self::get_tag_ir64(&litte_metadata, &ExifTag::ExposureCompensation(Vec::new()))
+            .map(|v| {
+                if v.nominator == 0 {
+                    "0".to_string()
+                } else {
+                    format!("{}/{}", v.nominator, v.denominator)
+                }
+            });
 
         let aperture = Self::get_tag_ur64(&litte_metadata, &ExifTag::FNumber(Vec::new()))
             .map(std::convert::Into::<f64>::into)
             .or(
-                Self::get_tag_ur64(&litte_metadata, &ExifTag::ApertureValue(Vec::new())).map(
-                    |rational| {
-                        let value: f64 = rational.into();
-                        // Convert APEX format to f-number
-                        2f64.powf(value / 2f64)
-                    },
-                ),
+                Self::get_tag_ur64(&litte_metadata, &ExifTag::ApertureValue(Vec::new())).map(|rational| {
+                    let value: f64 = rational.into();
+                    // Convert APEX format to f-number
+                    2f64.powf(value / 2f64)
+                }),
             )
             .map(|value| format!("{:.1}", value));
 
@@ -157,8 +150,8 @@ impl Metadata {
         let focal = Self::get_tag_ur64(&litte_metadata, &ExifTag::FocalLength(Vec::new()))
             .map(std::convert::Into::<f64>::into);
 
-        let flash = Self::get_tag_u16(&litte_metadata, &ExifTag::Flash(Vec::new()))
-            .map(Self::flash_code_to_string);
+        let flash =
+            Self::get_tag_u16(&litte_metadata, &ExifTag::Flash(Vec::new())).map(Self::flash_code_to_string);
 
         let camera_info = CameraInfo {
             camera,
@@ -174,7 +167,7 @@ impl Metadata {
             path: PathBuf::from(path),
             mime: kind.mime_type().to_string(),
             litte_metadata,
-            dimentions,
+            dimensions,
             date,
             description,
             camera_info,
@@ -184,10 +177,10 @@ impl Metadata {
 
     // Accessors
     pub fn width(&self) -> u32 {
-        self.dimentions.0
+        self.dimensions.0
     }
     pub fn height(&self) -> u32 {
-        self.dimentions.1
+        self.dimensions.1
     }
     pub fn date(&self) -> Option<NaiveDateTime> {
         self.date
@@ -238,11 +231,9 @@ impl Metadata {
     /// Check if ExifImageWidth/Height have the good values or fix them.
     /// Note: file will not be modified unless you call save().
     /// Return true if dimensions has been fixed
-    pub fn fix_dimentions(&mut self) -> bool {
-        let exif_width =
-            Self::get_tag_u32(&self.litte_metadata, &ExifTag::ExifImageWidth(Vec::new()));
-        let exif_height =
-            Self::get_tag_u32(&self.litte_metadata, &ExifTag::ExifImageHeight(Vec::new()));
+    pub fn fix_dimensions(&mut self) -> bool {
+        let exif_width = Self::get_tag_u32(&self.litte_metadata, &ExifTag::ExifImageWidth(Vec::new()));
+        let exif_height = Self::get_tag_u32(&self.litte_metadata, &ExifTag::ExifImageHeight(Vec::new()));
 
         if !exif_width.eq(&Some(self.width())) || !exif_height.eq(&Some(self.height())) {
             self.modified_tags.insert(Tag::Dimensions);
@@ -290,18 +281,17 @@ impl Metadata {
                             new_fileprefix.push_str(self.description.as_ref().unwrap());
                         }
 
-                        let extention = self.path.extension().unwrap_or(OsStr::new(""));
+                        let extension = self.path.extension().unwrap_or(OsStr::new(""));
 
-                        // Sanitize the file name and preserve space for the extention
-                        // The ext space reservation may not works for non-utf8 encoding extenttion
+                        // Sanitize the file name and preserve space for the extension
+                        // The ext space reservation may not works for non-utf8 encoding extension
                         let mut opt = sanitise_file_name::Options::DEFAULT;
-                        opt.length_limit -= extention.len() + 1;
-                        new_fileprefix =
-                            sanitise_file_name::sanitise_with_options(&new_fileprefix, &opt);
+                        opt.length_limit -= extension.len() + 1;
+                        new_fileprefix = sanitise_file_name::sanitise_with_options(&new_fileprefix, &opt);
                         let os_new_fileprefix = OsStr::new(&new_fileprefix);
 
                         let mut os_new_filename = os_new_fileprefix.to_os_string();
-                        os_new_filename.add_ext(extention);
+                        os_new_filename.add_ext(extension);
                         if Some(os_new_filename.as_os_str()) != self.path.file_name() {
                             let mut target_file_path = self.path.with_file_name(os_new_filename);
                             // Number filename to prevent file overwriting
@@ -310,7 +300,7 @@ impl Metadata {
                                 count += 1;
                                 os_new_filename = os_new_fileprefix.into();
                                 os_new_filename.push(format!("-{}", count));
-                                os_new_filename.add_ext(extention);
+                                os_new_filename.add_ext(extension);
                                 target_file_path = self.path.with_file_name(os_new_filename);
                             }
                             rename(&self.path, &target_file_path)?;
@@ -354,9 +344,7 @@ impl Metadata {
                         };
                         let transform = turbojpeg::Transform::op(trasform_op);
                         let mut flipped_data = turbojpeg::OutputBuf::new_owned();
-                        if let Err(e) =
-                            transformer.transform(&transform, &jpeg_data, &mut flipped_data)
-                        {
+                        if let Err(e) = transformer.transform(&transform, &jpeg_data, &mut flipped_data) {
                             return Err(Error::other(e.to_string()));
                         }
                         std::fs::write(&self.path, &flipped_data)?;
@@ -497,10 +485,7 @@ mod tests {
                 .unwrap()
                 .and_hms_opt(16, 27, 21)
         );
-        assert_eq!(
-            metadata.exif_date(),
-            Some("2006:10:29 16:27:21".to_string())
-        );
+        assert_eq!(metadata.exif_date(), Some("2006:10:29 16:27:21".to_string()));
         assert_eq!(metadata.description(), Some("A fun picture!".to_string()));
         assert_eq!(
             metadata.camera_info().camera,
@@ -588,9 +573,7 @@ mod tests {
         );
 
         // invalid Date tag check
-        assert!(metadata
-            .set_date_from_exif("2001:01:01".to_string())
-            .is_err());
+        assert!(metadata.set_date_from_exif("2001:01:01".to_string()).is_err());
         assert_eq!(
             metadata.date(),
             NaiveDate::from_ymd_opt(2006, 10, 29)
@@ -617,9 +600,7 @@ mod tests {
             .is_ok());
         assert_eq!(
             metadata.date(),
-            NaiveDate::from_ymd_opt(2001, 1, 1)
-                .unwrap()
-                .and_hms_opt(1, 1, 1)
+            NaiveDate::from_ymd_opt(2001, 1, 1).unwrap().and_hms_opt(1, 1, 1)
         );
 
         assert_eq!(metadata.save().ok(), Some(enum_set!(Tag::Date)));
@@ -630,9 +611,7 @@ mod tests {
         assert_eq!(metadata.description(), Some("Description 1".to_string()));
         assert_eq!(
             metadata.date(),
-            NaiveDate::from_ymd_opt(2001, 1, 1)
-                .unwrap()
-                .and_hms_opt(1, 1, 1)
+            NaiveDate::from_ymd_opt(2001, 1, 1).unwrap().and_hms_opt(1, 1, 1)
         );
 
         // All tags check
@@ -643,9 +622,7 @@ mod tests {
         assert_eq!(metadata.description(), Some("Description 2".to_string()));
         assert_eq!(
             metadata.date(),
-            NaiveDate::from_ymd_opt(2002, 2, 2)
-                .unwrap()
-                .and_hms_opt(2, 2, 2)
+            NaiveDate::from_ymd_opt(2002, 2, 2).unwrap().and_hms_opt(2, 2, 2)
         );
 
         assert_eq!(
@@ -659,9 +636,7 @@ mod tests {
         assert_eq!(metadata.description(), Some("Description 2".to_string()));
         assert_eq!(
             metadata.date(),
-            NaiveDate::from_ymd_opt(2002, 2, 2)
-                .unwrap()
-                .and_hms_opt(2, 2, 2)
+            NaiveDate::from_ymd_opt(2002, 2, 2).unwrap().and_hms_opt(2, 2, 2)
         );
     }
 
@@ -675,7 +650,7 @@ mod tests {
         let result = Metadata::new(&tmp_file_path);
         assert!(result.is_ok());
         let mut metadata = result.unwrap();
-        assert!(!metadata.fix_dimentions());
+        assert!(!metadata.fix_dimensions());
         assert_eq!(metadata.save().ok(), Some(enum_set!()));
 
         // Check an invalid file
@@ -683,7 +658,7 @@ mod tests {
         let result = Metadata::new(&tmp_file_path);
         assert!(result.is_ok());
         let mut metadata = result.unwrap();
-        assert!(metadata.fix_dimentions());
+        assert!(metadata.fix_dimensions());
         assert_eq!(metadata.save().ok(), Some(enum_set!(Tag::Dimensions)));
 
         // Reload file and check dimensions
@@ -705,9 +680,7 @@ mod tests {
     fn fix_file_name() {
         let tmpdir = tempfile::tempdir().unwrap();
         let tmp_file_path = tmpdir.path().join("photo_norm_test.jpg");
-        let target_file_path = tmpdir
-            .path()
-            .join("2006_10_29-16_27_21 - A fun picture!.jpg");
+        let target_file_path = tmpdir.path().join("2006_10_29-16_27_21 - A fun picture!.jpg");
         assert!(fs::copy(Path::new("tests/all_tags.jpg"), &tmp_file_path,).is_ok());
         assert!(tmp_file_path.exists());
         assert!(!target_file_path.exists());
@@ -756,9 +729,7 @@ mod tests {
         let tmp_file_path = tmpdir.path().join("photo_norm_test.jpg");
         assert!(fs::copy(Path::new("tests/all_tags.jpg"), &tmp_file_path,).is_ok());
         assert!(tmp_file_path.exists());
-        let target_file_path = tmpdir
-            .path()
-            .join("2006_10_29-16_27_21 - A fun picture!-4.jpg");
+        let target_file_path = tmpdir.path().join("2006_10_29-16_27_21 - A fun picture!-4.jpg");
         assert!(!target_file_path.exists());
 
         // Check file rename
@@ -781,8 +752,7 @@ mod tests {
         let mut metadata = result.unwrap();
 
         let orientation =
-            Metadata::get_tag_u16(&metadata.litte_metadata, &ExifTag::Orientation(Vec::new()))
-                .unwrap();
+            Metadata::get_tag_u16(&metadata.litte_metadata, &ExifTag::Orientation(Vec::new())).unwrap();
         assert_eq!(orientation, 8);
 
         metadata.fix_orientation();
@@ -792,8 +762,7 @@ mod tests {
         assert!(result.is_ok());
         let mut metadata = result.unwrap();
         let orientation =
-            Metadata::get_tag_u16(&metadata.litte_metadata, &ExifTag::Orientation(Vec::new()))
-                .unwrap();
+            Metadata::get_tag_u16(&metadata.litte_metadata, &ExifTag::Orientation(Vec::new())).unwrap();
         assert_eq!(orientation, 1);
 
         metadata.fix_orientation();

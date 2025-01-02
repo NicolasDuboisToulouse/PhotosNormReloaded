@@ -14,13 +14,13 @@ struct ImageData<'a> {
     name: String,
 }
 
-pub struct MainPannel<'a> {
+pub struct MainPanel<'a> {
     /// list of selected paths (result)
     images: Vec<ImageData<'a>>,
     images_taffy_size: Option<taffy::Size<taffy::Dimension>>,
 }
 
-impl MainPannel<'_> {
+impl MainPanel<'_> {
     pub fn show(image_paths: &[PathBuf]) -> eframe::Result {
         // Compute ImageData for each image
         let images = image_paths
@@ -33,7 +33,7 @@ impl MainPannel<'_> {
                             uri.push_str(path_str);
                             Ok(uri)
                         }
-                        None => Err(std::io::Error::other("Unsuported non-UT8 paths.")),
+                        None => Err(std::io::Error::other("Unsupported non-UT8 paths.")),
                     },
                     Err(e) => Err(e),
                 };
@@ -48,7 +48,7 @@ impl MainPannel<'_> {
             })
             .collect::<Vec<_>>();
 
-        let pannel = MainPannel {
+        let panel = MainPanel {
             images,
             images_taffy_size: None,
         };
@@ -67,13 +67,13 @@ impl MainPannel<'_> {
             Box::new(|cc| {
                 //            cc.egui_ctx.set_theme(egui::ThemePreference::Light);
                 egui_extras::install_image_loaders(&cc.egui_ctx);
-                Ok(Box::new(pannel))
+                Ok(Box::new(panel))
             }),
         )
     }
 }
 
-impl eframe::App for MainPannel<'_> {
+impl eframe::App for MainPanel<'_> {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             assets::init_egui_ctx(ctx);
@@ -87,9 +87,12 @@ impl eframe::App for MainPannel<'_> {
                 });
             }
 
-            let images_taffy_size = self.images_taffy_size.expect("Image size shall be computed here!");
+            let images_taffy_size = self
+                .images_taffy_size
+                .expect("Image size shall be computed here!");
             let images_size = images_taffy_size
-                .height.into_option()
+                .height
+                .into_option()
                 .expect("Image size shall be computed here!");
 
             //
@@ -112,9 +115,12 @@ impl eframe::App for MainPannel<'_> {
                 })
                 .show(|tui| {
                     tui.ui(|ui| {
-                        if ui.button("Save and fix all...")
+                        if ui
+                            .button("Save and fix all...")
                             .on_hover_ui(|ui| {
-                                ui.label("Save modified metadata and apply fixes (orientation, file name...)");
+                                ui.label(
+                                    "Save modified metadata and apply fixes (orientation, file name...)",
+                                );
                             })
                             .clicked()
                         {
@@ -122,7 +128,8 @@ impl eframe::App for MainPannel<'_> {
                         }
                     });
                     tui.ui(|ui| {
-                        if ui.button("Save all...")
+                        if ui
+                            .button("Save all...")
                             .on_hover_ui(|ui| {
                                 ui.label("Only save modified metadata");
                             })
@@ -143,7 +150,10 @@ impl eframe::App for MainPannel<'_> {
                                 None => images_size.into(),
                                 Some(images_size) => {
                                     // TODO: store that in persistence
-                                    self.images_taffy_size = Some(taffy::Size::from_lengths(images_size as f32, images_size as f32));
+                                    self.images_taffy_size = Some(taffy::Size::from_lengths(
+                                        images_size as f32,
+                                        images_size as f32,
+                                    ));
                                     images_size
                                 }
                             }
@@ -186,24 +196,27 @@ impl eframe::App for MainPannel<'_> {
                                         Ok(uri) => {
                                             //TODO: Image are not loaded in background.
                                             let image = egui::Image::from_uri(uri);
-                                            let result =
-                                                image
+                                            let result = image
                                                 .load_for_size(ctx, egui::Vec2::from_size(images_taffy_size));
                                             match result {
                                                 Ok(poll) => {
                                                     match poll {
-                                                        egui::load::TexturePoll::Pending { size: _ } => ui.spinner(),
+                                                        egui::load::TexturePoll::Pending { size: _ } => {
+                                                            ui.spinner()
+                                                        }
                                                         // TODO: image is not centered
-                                                        egui::load::TexturePoll::Ready { texture: _ } => ui.add(image),
+                                                        egui::load::TexturePoll::Ready { texture: _ } => {
+                                                            ui.add(image)
+                                                        }
                                                     }
-                                                },
-                                                // TODO: store error to display in right pannel
+                                                }
+                                                // TODO: store error to display in right panel
                                                 // TODO: Better handling of invalid image
-                                                Err(_) => ui.add(egui::Image::from_uri("invalid"))
+                                                Err(_) => ui.add(egui::Image::from_uri("invalid")),
                                             };
                                         }
                                         Err(_) => {
-                                            // TODO: store error to display in right pannel
+                                            // TODO: store error to display in right panel
                                             // TODO: Better handling of invalid image
                                             ui.add(egui::Image::from_uri("invalid"));
                                         }

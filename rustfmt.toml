@@ -1,0 +1,5 @@
+# rustfmt stop to works if it cannot fit a line in max_width.
+# egui/taffy needs long lines, or code has to be split in one-call sub functions.
+# rustfmt error_on_line_overflow is not stable, so we don't known witch parts of code needs sub-functions
+# So, we allow longer lines...
+max_width = 110

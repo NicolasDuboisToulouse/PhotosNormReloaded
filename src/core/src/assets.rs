@@ -11,7 +11,7 @@ pub const DOC_CLI: &str = "PhotosNorm: A simple tool to lossless manipulate imag
                            \n\
                            To each command, you can provide one or more files and/or folders.\n\
                            Each known files (aka images) will be processed, other ones will be ignored.\n\
-                           For each folder, all files within will be analysed like described just before. Sub-folders will be \
+                           For each folder, all files within will be analyzed like described just before. Sub-folders will be \
                            ignored (this is non-recursive).";
 
 pub const DOC_GUI: &str = "PhotosNorm: A simple tool to lossless manipulate images properties.\n\
@@ -21,5 +21,5 @@ pub const DOC_GUI: &str = "PhotosNorm: A simple tool to lossless manipulate imag
                            \n\
                            You can provide one or more files and/or folders.\n\
                            Each known files (aka images) will be processed, other ones will be ignored.\n\
-                           For each folder, all files within will be analysed like described just before. Sub-folders will be \
+                           For each folder, all files within will be analyses like described just before. Sub-folders will be \
                            ignored (this is non-recursive).";

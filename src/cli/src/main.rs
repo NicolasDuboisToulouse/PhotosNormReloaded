@@ -132,7 +132,11 @@ fn main() -> Result<(), std::io::Error> {
     // Check parameters
     if let Commands::Set(ref args) = args.command {
         if !args.force && images.len() != 1 {
-            panic!("{}: Setting same tag values to several images is not allowed unless you use {} option.", "error".red(), "--force".yellow());
+            panic!(
+                "{}: Setting same tag values to several images is not allowed unless you use {} option.",
+                "error".red(),
+                "--force".yellow()
+            );
         }
     }
 
@@ -165,7 +169,7 @@ fn main() -> Result<(), std::io::Error> {
                         .unwrap_or("{No exif date!}".yellow().to_string())
                 );
                 print_table!(
-                    "Desription:",
+                    "Description:",
                     metadata
                         .description()
                         .unwrap_or("{No exif description!}".yellow().to_string())
@@ -181,8 +185,7 @@ fn main() -> Result<(), std::io::Error> {
                     metadata.set_description(args.setters.description.as_ref().unwrap());
                 }
                 if args.setters.date.is_some() {
-                    let result = metadata
-                        .set_date_from_exif(args.setters.date.as_ref().unwrap().to_string());
+                    let result = metadata.set_date_from_exif(args.setters.date.as_ref().unwrap().to_string());
                     if result.is_err() {
                         panic!(
                             "{}: Cannot parse date: '{}': {}!",
@@ -204,7 +207,7 @@ fn main() -> Result<(), std::io::Error> {
             }
             Commands::Fix(args) => {
                 if args.all || args.setters.dimensions {
-                    metadata.fix_dimentions();
+                    metadata.fix_dimensions();
                 }
                 if args.all || args.setters.name {
                     metadata.fix_file_name();

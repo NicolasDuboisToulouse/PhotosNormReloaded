@@ -17,13 +17,9 @@ impl Display for CameraInfo {
         write!(
             f,
             "{}, Exposure: {}, Bias: {}, Aperture: {}, ISO: {}, Focal: {}, Flash: {}",
-            self.camera
-                .as_ref()
-                .unwrap_or(&"Unknown camera".to_string()),
+            self.camera.as_ref().unwrap_or(&"Unknown camera".to_string()),
             self.exposure.as_ref().unwrap_or(&"Undefined".to_string()),
-            self.exposure_bias
-                .as_ref()
-                .unwrap_or(&"Undefined".to_string()),
+            self.exposure_bias.as_ref().unwrap_or(&"Undefined".to_string()),
             self.aperture.as_ref().unwrap_or(&"Undefined".to_string()),
             match self.iso {
                 Some(v) => v.to_string(),
