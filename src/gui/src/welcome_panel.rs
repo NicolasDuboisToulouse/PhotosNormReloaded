@@ -48,6 +48,7 @@ impl WelcomePanel<'_> {
             Box::new(|cc| {
                 //            cc.egui_ctx.set_theme(egui::ThemePreference::Light);
                 egui_extras::install_image_loaders(&cc.egui_ctx);
+                assets::init_egui_ctx(&cc.egui_ctx);
                 Ok(Box::new(panel))
             }),
         );
@@ -105,7 +106,6 @@ impl WelcomePanel<'_> {
 impl eframe::App for WelcomePanel<'_> {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            assets::init_egui_ctx(ctx);
             // Main widget, fill wall space
             egui_taffy::tui(ui, ui.id().with("welcome"))
                 .reserve_available_space()

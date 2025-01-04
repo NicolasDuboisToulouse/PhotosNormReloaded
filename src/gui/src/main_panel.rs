@@ -67,6 +67,8 @@ impl MainPanel<'_> {
             Box::new(|cc| {
                 //            cc.egui_ctx.set_theme(egui::ThemePreference::Light);
                 egui_extras::install_image_loaders(&cc.egui_ctx);
+                assets::init_egui_ctx(&cc.egui_ctx);
+
                 Ok(Box::new(panel))
             }),
         )
@@ -76,8 +78,6 @@ impl MainPanel<'_> {
 impl eframe::App for MainPanel<'_> {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            assets::init_egui_ctx(ctx);
-
             // Compute initial image size
             if self.images_taffy_size.is_none() {
                 let images_size = ui.available_height() / 4.0;
@@ -199,17 +199,16 @@ impl eframe::App for MainPanel<'_> {
                                             let result = image
                                                 .load_for_size(ctx, egui::Vec2::from_size(images_taffy_size));
                                             match result {
-                                                Ok(poll) => {
-                                                    match poll {
-                                                        egui::load::TexturePoll::Pending { size: _ } => {
-                                                            ui.spinner()
-                                                        }
-                                                        // TODO: image is not centered
-                                                        egui::load::TexturePoll::Ready { texture: _ } => {
-                                                            ui.add(image)
-                                                        }
+                                                Ok(poll) => match poll {
+                                                    egui::load::TexturePoll::Pending { size: _ } => {
+                                                        ui.spinner()
                                                     }
-                                                }
+                                                    egui::load::TexturePoll::Ready { texture: _ } => ui
+                                                        .add_sized(
+                                                            egui::Vec2::from_size(images_taffy_size),
+                                                            image,
+                                                        ),
+                                                },
                                                 // TODO: store error to display in right panel
                                                 // TODO: Better handling of invalid image
                                                 Err(_) => ui.add(egui::Image::from_uri("invalid")),
