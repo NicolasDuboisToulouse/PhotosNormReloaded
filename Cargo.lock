@@ -1870,6 +1870,7 @@ dependencies = [
  "egui_taffy",
  "image",
  "rfd",
+ "serde",
  "winresource",
 ]
 

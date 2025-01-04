@@ -1,4 +1,3 @@
-use eframe::egui;
 use egui_taffy::taffy;
 
 ///
@@ -30,22 +29,6 @@ impl<T: taffy::prelude::FromPercent + taffy::prelude::FromLength> FromHPercent f
 
 pub fn h_percent<Input: Into<f32> + Copy, T: FromHPercent>(percent: Input) -> T {
     T::from_h_percent(percent)
-}
-
-///
-/// Create Self from a taffy::Size
-///
-pub trait FromTaffySize {
-    fn from_size<T: taffy::ResolveOrZero<Option<f32>, f32>>(size: taffy::Size<T>) -> Self;
-}
-
-impl FromTaffySize for egui::Vec2 {
-    fn from_size<T: taffy::ResolveOrZero<Option<f32>, f32>>(size: taffy::Size<T>) -> Self {
-        egui::Vec2 {
-            x: size.width.resolve_or_zero(Some(0.0)),
-            y: size.height.resolve_or_zero(Some(0.0)),
-        }
-    }
 }
 
 ///

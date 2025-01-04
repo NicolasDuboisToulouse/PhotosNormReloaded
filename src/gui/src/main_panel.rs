@@ -1,10 +1,8 @@
-use crate::{
-    assets,
-    taffy_tools::{self, FromTaffySize},
-};
+use crate::{assets, taffy_tools};
 use core::assets as core_assets;
 use eframe::egui;
 use egui_taffy::{self, taffy, TuiBuilderLogic};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 struct ImageData<'a> {
@@ -17,7 +15,30 @@ struct ImageData<'a> {
 pub struct MainPanel<'a> {
     /// list of selected paths (result)
     images: Vec<ImageData<'a>>,
-    images_taffy_size: Option<taffy::Size<taffy::Dimension>>,
+    initialized: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Copy)]
+struct State {
+    images_size_vec: egui::Vec2,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        State {
+            images_size_vec: egui::Vec2::ZERO,
+        }
+    }
+}
+
+impl State {
+    pub fn load(ctx: &egui::Context, id: egui::Id) -> Option<Self> {
+        ctx.data_mut(|d| d.get_persisted(id))
+    }
+
+    pub fn store(self, ctx: &egui::Context, id: egui::Id) {
+        ctx.data_mut(|d| d.insert_persisted(id, self));
+    }
 }
 
 impl MainPanel<'_> {
@@ -50,7 +71,7 @@ impl MainPanel<'_> {
 
         let panel = MainPanel {
             images,
-            images_taffy_size: None,
+            initialized: false,
         };
 
         let native_options = eframe::NativeOptions {
@@ -78,22 +99,13 @@ impl MainPanel<'_> {
 impl eframe::App for MainPanel<'_> {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            // Compute initial image size
-            if self.images_taffy_size.is_none() {
+            let mut state = State::load(ctx, ui.id()).unwrap_or_else(|| {
                 let images_size = ui.available_height() / 4.0;
-                self.images_taffy_size = Some(taffy::Size {
-                    width: taffy::Dimension::Length(images_size),
-                    height: taffy::Dimension::Length(images_size),
-                });
-            }
-
-            let images_taffy_size = self
-                .images_taffy_size
-                .expect("Image size shall be computed here!");
-            let images_size = images_taffy_size
-                .height
-                .into_option()
-                .expect("Image size shall be computed here!");
+                State {
+                    images_size_vec: egui::Vec2::new(images_size, images_size),
+                }
+            });
+            let images_size = state.images_size_vec.x;
 
             //
             // Header
@@ -145,17 +157,12 @@ impl eframe::App for MainPanel<'_> {
                     .add_empty();
                     tui.label("Image size:");
                     tui.ui(|ui| {
-                        ui.add(egui::Slider::from_get_set(100.0..=500.0, |value| {
-                            match value {
-                                None => images_size.into(),
-                                Some(images_size) => {
-                                    // TODO: store that in persistence
-                                    self.images_taffy_size = Some(taffy::Size::from_lengths(
-                                        images_size as f32,
-                                        images_size as f32,
-                                    ));
-                                    images_size
-                                }
+                        ui.add(egui::Slider::from_get_set(100.0..=500.0, |value| match value {
+                            None => images_size.into(),
+                            Some(images_size) => {
+                                state.images_size_vec =
+                                    egui::Vec2::new(images_size as f32, images_size as f32);
+                                images_size
                             }
                         }));
                     });
@@ -166,8 +173,13 @@ impl eframe::App for MainPanel<'_> {
             //
             // Image list
             //
-            // TODO: initialize to top (currently stored in persistence)
-            egui::ScrollArea::vertical().show(ui, |ui| {
+            let scroll_area = if self.initialized {
+                egui::ScrollArea::vertical()
+            } else {
+                // Clear scroll_offset persistance
+                egui::ScrollArea::vertical().scroll_offset(egui::Vec2::ZERO)
+            };
+            scroll_area.show(ui, |ui| {
                 egui_taffy::tui(ui, ui.id().with("main"))
                     .reserve_available_space()
                     .style(taffy::Style {
@@ -186,7 +198,10 @@ impl eframe::App for MainPanel<'_> {
                             })
                             .add(|tui| {
                                 tui.style(taffy::Style {
-                                    size: images_taffy_size,
+                                    size: taffy::Size::from_lengths(
+                                        state.images_size_vec.x,
+                                        state.images_size_vec.y,
+                                    ),
                                     align_self: Some(taffy::AlignItems::Center),
                                     justify_self: Some(taffy::AlignItems::Center),
                                     ..Default::default()
@@ -196,18 +211,15 @@ impl eframe::App for MainPanel<'_> {
                                         Ok(uri) => {
                                             //TODO: Image are not loaded in background.
                                             let image = egui::Image::from_uri(uri);
-                                            let result = image
-                                                .load_for_size(ctx, egui::Vec2::from_size(images_taffy_size));
+                                            let result = image.load_for_size(ctx, state.images_size_vec);
                                             match result {
                                                 Ok(poll) => match poll {
                                                     egui::load::TexturePoll::Pending { size: _ } => {
                                                         ui.spinner()
                                                     }
-                                                    egui::load::TexturePoll::Ready { texture: _ } => ui
-                                                        .add_sized(
-                                                            egui::Vec2::from_size(images_taffy_size),
-                                                            image,
-                                                        ),
+                                                    egui::load::TexturePoll::Ready { texture: _ } => {
+                                                        ui.add_sized(state.images_size_vec, image)
+                                                    }
                                                 },
                                                 // TODO: store error to display in right panel
                                                 // TODO: Better handling of invalid image
@@ -228,6 +240,8 @@ impl eframe::App for MainPanel<'_> {
                         }
                     });
             });
+            self.initialized = true;
+            state.store(ctx, ui.id());
         });
     }
 }
