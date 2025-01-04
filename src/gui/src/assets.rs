@@ -6,6 +6,7 @@ const APP_ICON: &[u8] = include_bytes!("../assets/icon.png");
 
 pub const SPLASH_ON_LIGHT: egui::ImageSource = egui::include_image!("../assets/splash.png");
 pub const SPLASH_ON_DARK: egui::ImageSource = egui::include_image!("../assets/splash_on_dark.png");
+pub const ERROR_IMG: egui::ImageSource = egui::include_image!("../assets/error.png");
 
 ///
 /// Load main application icon

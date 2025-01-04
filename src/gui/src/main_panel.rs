@@ -259,19 +259,17 @@ impl eframe::App for MainPanel<'_> {
                                                 },
                                                 Err(ref e) => {
                                                     image.error = Some(e.to_string());
-                                                    // TODO: Better handling of invalid image
                                                     ui.add_sized(
                                                         state.images_size_vec,
-                                                        egui::Image::from_uri("invalid"),
+                                                        egui::widgets::Image::new(assets::ERROR_IMG),
                                                     )
                                                 }
                                             };
                                         }
                                         Err(_) => {
-                                            // TODO: Better handling of invalid image
                                             ui.add_sized(
                                                 state.images_size_vec,
-                                                egui::Image::from_uri("invalid"),
+                                                egui::widgets::Image::new(assets::ERROR_IMG),
                                             );
                                         }
                                     };
