@@ -1,7 +1,14 @@
 use crate::{assets, taffy_tools};
 use core::assets as core_assets;
 use eframe::egui;
-use egui_taffy::{self, taffy, TuiBuilderLogic};
+use egui_taffy::{
+    self,
+    taffy::{
+        self,
+        prelude::{FromPercent, TaffyMinContent},
+    },
+    TuiBuilderLogic,
+};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -9,7 +16,10 @@ struct ImageData<'a> {
     #[allow(dead_code)] // May be used later
     path: &'a PathBuf,
     uri: Result<String, std::io::Error>,
-    name: String,
+    filename: String,
+    error: Option<String>,
+    description: String,
+    date: String,
 }
 
 pub struct MainPanel<'a> {
@@ -41,6 +51,19 @@ impl State {
     }
 }
 
+trait TuiTool {
+    fn wrapped_label(&mut self, text: impl Into<egui::WidgetText>);
+}
+
+impl TuiTool for egui_taffy::Tui {
+    fn wrapped_label(&mut self, text: impl Into<egui::WidgetText>) {
+        self.ui(|ui| {
+            ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
+            ui.label(text);
+        });
+    }
+}
+
 impl MainPanel<'_> {
     pub fn show(image_paths: &[PathBuf]) -> eframe::Result {
         // Compute ImageData for each image
@@ -59,13 +82,25 @@ impl MainPanel<'_> {
                     Err(e) => Err(e),
                 };
 
-                let name = path
+                let error = match uri {
+                    Ok(_) => None,
+                    Err(ref e) => Some(e.to_string()),
+                };
+
+                let filename = path
                     .file_name()
                     .unwrap_or(std::ffi::OsStr::new("Unexpected invalid file name"))
                     .to_string_lossy()
                     .to_string();
 
-                ImageData { path, uri, name }
+                ImageData {
+                    path,
+                    uri,
+                    filename,
+                    error,
+                    description: String::new(),
+                    date: String::new(),
+                }
             })
             .collect::<Vec<_>>();
 
@@ -189,7 +224,7 @@ impl eframe::App for MainPanel<'_> {
                         ..Default::default()
                     })
                     .show(|tui| {
-                        for image in &self.images {
+                        for image in &mut self.images {
                             tui.style(taffy::Style {
                                 flex_direction: taffy::FlexDirection::Row,
                                 padding: taffy_tools::rect_lp(10.0, 10.0, 0.0, 0.0),
@@ -210,31 +245,78 @@ impl eframe::App for MainPanel<'_> {
                                     match &image.uri {
                                         Ok(uri) => {
                                             //TODO: Image are not loaded in background.
-                                            let image = egui::Image::from_uri(uri);
-                                            let result = image.load_for_size(ctx, state.images_size_vec);
+                                            let image_widget = egui::Image::from_uri(uri);
+                                            let result =
+                                                image_widget.load_for_size(ctx, state.images_size_vec);
                                             match result {
                                                 Ok(poll) => match poll {
                                                     egui::load::TexturePoll::Pending { size: _ } => {
                                                         ui.spinner()
                                                     }
                                                     egui::load::TexturePoll::Ready { texture: _ } => {
-                                                        ui.add_sized(state.images_size_vec, image)
+                                                        ui.add_sized(state.images_size_vec, image_widget)
                                                     }
                                                 },
-                                                // TODO: store error to display in right panel
-                                                // TODO: Better handling of invalid image
-                                                Err(_) => ui.add(egui::Image::from_uri("invalid")),
+                                                Err(ref e) => {
+                                                    image.error = Some(e.to_string());
+                                                    // TODO: Better handling of invalid image
+                                                    ui.add_sized(
+                                                        state.images_size_vec,
+                                                        egui::Image::from_uri("invalid"),
+                                                    )
+                                                }
                                             };
                                         }
                                         Err(_) => {
-                                            // TODO: store error to display in right panel
                                             // TODO: Better handling of invalid image
-                                            ui.add(egui::Image::from_uri("invalid"));
+                                            ui.add_sized(
+                                                state.images_size_vec,
+                                                egui::Image::from_uri("invalid"),
+                                            );
                                         }
                                     };
                                 });
-                                // TODO: draw right widget
-                                tui.label(&image.name);
+                                tui.style(taffy::Style {
+                                    size: taffy::Size {
+                                        width: taffy::Dimension::from_percent(1.0),
+                                        height: taffy::Dimension::from_percent(0.0),
+                                    },
+                                    display: taffy::Display::Grid,
+                                    grid_template_columns: vec![
+                                        taffy::TrackSizingFunction::MIN_CONTENT,
+                                        taffy::prelude::fr(1.0),
+                                    ],
+                                    gap: taffy_tools::size_lp(4.0, 10.0),
+
+                                    ..Default::default()
+                                })
+                                .add(|tui| {
+                                    tui.label("File:");
+                                    tui.wrapped_label(&image.filename);
+
+                                    match image.error {
+                                        Some(ref e) => {
+                                            tui.label("Error:");
+                                            tui.wrapped_label(e);
+                                        }
+                                        None => {
+                                            tui.label("Camera:");
+                                            tui.wrapped_label("TODO CAMERA INFO");
+
+                                            tui.label("Description: ");
+                                            tui.ui_add(
+                                                egui::TextEdit::singleline(&mut image.description)
+                                                    .desired_width(f32::INFINITY),
+                                            );
+
+                                            tui.label("Date: ");
+                                            tui.ui_add(
+                                                egui::TextEdit::singleline(&mut image.date)
+                                                    .desired_width(f32::INFINITY),
+                                            );
+                                        }
+                                    }
+                                });
                             });
                             tui.separator();
                         }
