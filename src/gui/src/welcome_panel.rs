@@ -104,7 +104,7 @@ impl WelcomePanel<'_> {
 }
 
 impl eframe::App for WelcomePanel<'_> {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             // Main widget, fill wall space
             egui_taffy::tui(ui, ui.id().with("welcome"))
@@ -175,7 +175,7 @@ impl eframe::App for WelcomePanel<'_> {
                                 })
                                 .clicked()
                             {
-                                if let Some(paths) = rfd::FileDialog::new().pick_folders() {
+                                if let Some(paths) = rfd::FileDialog::new().set_parent(frame).pick_folders() {
                                     self.set_paths_vec(paths);
                                 }
                             }
@@ -193,7 +193,7 @@ impl eframe::App for WelcomePanel<'_> {
                                 })
                                 .clicked()
                             {
-                                if let Some(paths) = rfd::FileDialog::new().pick_files() {
+                                if let Some(paths) = rfd::FileDialog::new().set_parent(frame).pick_files() {
                                     self.set_paths_vec(paths);
                                 }
                             }
