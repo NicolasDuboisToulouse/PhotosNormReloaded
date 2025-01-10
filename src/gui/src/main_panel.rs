@@ -1,6 +1,6 @@
+mod image;
 use crate::{assets, taffy_tools};
 use core::assets as core_assets;
-use core::metadata::Metadata;
 use eframe::egui;
 use egui_taffy::{
     self,
@@ -13,25 +13,16 @@ use egui_taffy::{
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-struct ImageData<'a> {
-    #[allow(dead_code)] // TODO: May be used later
-    path: &'a PathBuf,
-    filename: String,
-    error: Option<String>,
-    uri: Option<String>,
-    #[allow(dead_code)] // TODO: May be used later
-    metadata: Option<Metadata>,
-    camera: String,
-    description: String,
-    date: String,
-}
-
-pub struct MainPanel<'a> {
+pub struct MainPanel {
     /// list of selected paths (result)
-    images: Vec<ImageData<'a>>,
+    images: Vec<image::ImageResult>,
+    // TODO: remove this hack
     initialized: bool,
 }
 
+//
+// State saved in percistence
+//
 #[derive(Serialize, Deserialize, Clone, Debug, Copy)]
 struct State {
     images_size_vec: egui::Vec2,
@@ -55,6 +46,9 @@ impl State {
     }
 }
 
+//
+// Helpers
+//
 trait UiTool {
     fn wrapped_label(&mut self, text: impl Into<egui::WidgetText>);
 }
@@ -65,67 +59,13 @@ impl UiTool for egui::Ui {
     }
 }
 
-impl MainPanel<'_> {
+//
+// Main pannel itself
+//
+impl MainPanel {
+    /// Display the main pannel
     pub fn show(image_paths: &[PathBuf]) -> eframe::Result {
-        // Compute ImageData for each image
-        let images = image_paths
-            .iter()
-            .map(|path| {
-                let filename = path
-                    .file_name()
-                    .unwrap_or(std::ffi::OsStr::new("Unexpected invalid file name"))
-                    .to_string_lossy()
-                    .to_string();
-
-                let uri = match std::fs::canonicalize(path) {
-                    Ok(path) => match path.to_str() {
-                        Some(path_str) => {
-                            let mut uri = String::from("file://");
-                            uri.push_str(path_str);
-                            Ok(uri)
-                        }
-                        None => Err(std::io::Error::other("Unsupported non-UT8 paths.")),
-                    },
-                    Err(e) => Err(e),
-                };
-
-                let metadata = match uri {
-                    Ok(_) => Metadata::new(path),
-                    Err(ref e) => Err(std::io::Error::other(e.to_string())),
-                };
-
-                let camera = match metadata {
-                    Ok(ref m) => m.camera_info().to_string(),
-                    Err(_) => String::new(),
-                };
-
-                let description = match metadata {
-                    Ok(ref m) => m.description().unwrap_or(String::new()),
-                    Err(_) => String::new(),
-                };
-
-                let date = match metadata {
-                    Ok(ref m) => m.exif_date().unwrap_or(String::new()),
-                    Err(_) => String::new(),
-                };
-
-                let error = match metadata {
-                    Ok(_) => None,
-                    Err(ref e) => Some(e.to_string()),
-                };
-
-                ImageData {
-                    path,
-                    filename,
-                    error,
-                    uri: uri.ok(),
-                    camera,
-                    metadata: metadata.ok(),
-                    description,
-                    date,
-                }
-            })
-            .collect::<Vec<_>>();
+        let images = image_paths.iter().map(image::Data::new).collect::<Vec<_>>();
 
         let panel = MainPanel {
             images,
@@ -152,9 +92,52 @@ impl MainPanel<'_> {
             }),
         )
     }
+
+    /// Draw the left widget for an image
+    fn add_left_image(state: State, tui: &mut egui_taffy::Tui, widget: impl egui::Widget) {
+        tui.style(taffy::Style {
+            size: taffy::Size::from_lengths(state.images_size_vec.x, state.images_size_vec.y),
+            align_self: Some(taffy::AlignItems::Center),
+            justify_self: Some(taffy::AlignItems::Center),
+            ..Default::default()
+        })
+        .ui(|ui| {
+            ui.add_sized(state.images_size_vec, widget);
+        });
+    }
+
+    /// Draw the right grid for an image
+    fn add_right_grid<T>(
+        tui: &mut egui_taffy::Tui,
+        width: f32,
+        filename: &str,
+        content: impl FnOnce(&mut egui::Ui) -> T,
+    ) {
+        tui.style(taffy::Style {
+            size: taffy::Size {
+                width: taffy::Dimension::from_length(width),
+                height: taffy::Dimension::from_percent(0.0),
+            },
+            display: taffy::Display::Block,
+            ..Default::default()
+        })
+        .add(|tui| {
+            tui.ui(|ui| {
+                egui::Grid::new(filename)
+                    .num_columns(2)
+                    .spacing(egui::Vec2::new(4.0, 10.0))
+                    .show(ui, |ui| {
+                        ui.label("File:");
+                        ui.label(filename);
+                        ui.end_row();
+                        content(ui);
+                    });
+            });
+        });
+    }
 }
 
-impl eframe::App for MainPanel<'_> {
+impl eframe::App for MainPanel {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             let mut state = State::load(ctx, ui.id()).unwrap_or_else(|| {
@@ -257,99 +240,65 @@ impl eframe::App for MainPanel<'_> {
                                 ..Default::default()
                             })
                             .add(|tui| {
-                                tui.style(taffy::Style {
-                                    size: taffy::Size::from_lengths(
-                                        state.images_size_vec.x,
-                                        state.images_size_vec.y,
-                                    ),
-                                    align_self: Some(taffy::AlignItems::Center),
-                                    justify_self: Some(taffy::AlignItems::Center),
-                                    ..Default::default()
-                                })
-                                .ui(|ui| {
-                                    match &image.uri {
-                                        Some(uri) => {
-                                            //TODO: Image are not loaded in background.
-                                            let image_widget = egui::Image::from_uri(uri);
-                                            let result =
-                                                image_widget.load_for_size(ctx, state.images_size_vec);
-                                            match result {
-                                                Ok(poll) => match poll {
-                                                    egui::load::TexturePoll::Pending { size: _ } => {
-                                                        ui.spinner()
-                                                    }
-                                                    egui::load::TexturePoll::Ready { texture: _ } => {
-                                                        ui.add_sized(state.images_size_vec, image_widget)
-                                                    }
-                                                },
-                                                Err(ref e) => {
-                                                    image.error = Some(e.to_string());
-                                                    ui.add_sized(
-                                                        state.images_size_vec,
-                                                        egui::widgets::Image::new(assets::ERROR_IMG),
-                                                    )
+                                match image {
+                                    Ok(image) => {
+                                        //TODO: Image are not loaded in background.
+                                        let image_widget = egui::Image::from_uri(&image.uri);
+                                        let result = image_widget.load_for_size(ctx, state.images_size_vec);
+                                        match result {
+                                            Ok(poll) => match poll {
+                                                egui::load::TexturePoll::Pending { size: _ } => {
+                                                    Self::add_left_image(state, tui, egui::Spinner::new());
                                                 }
-                                            };
-                                        }
-                                        None => {
-                                            ui.add_sized(
-                                                state.images_size_vec,
-                                                egui::widgets::Image::new(assets::ERROR_IMG),
+                                                egui::load::TexturePoll::Ready { texture: _ } => {
+                                                    Self::add_left_image(state, tui, image_widget)
+                                                }
+                                            },
+                                            Err(_) => {
+                                                Self::add_left_image(
+                                                    state,
+                                                    tui,
+                                                    egui::widgets::Image::new(assets::ERROR_IMG),
+                                                );
+                                            }
+                                        };
+                                        Self::add_right_grid(tui, infos_width, &image.filename, |ui| {
+                                            ui.label("Camera:");
+                                            ui.wrapped_label(&image.camera);
+                                            ui.end_row();
+
+                                            ui.label("Description: ");
+                                            ui.add(
+                                                egui::TextEdit::singleline(&mut image.description)
+                                                    .desired_width(f32::INFINITY),
                                             );
-                                        }
-                                    };
-                                });
+                                            ui.end_row();
 
-                                tui.style(taffy::Style {
-                                    size: taffy::Size {
-                                        width: taffy::Dimension::from_length(infos_width),
-                                        height: taffy::Dimension::from_percent(0.0),
-                                    },
-                                    display: taffy::Display::Block,
-                                    ..Default::default()
-                                })
-                                .add(|tui| {
-                                    tui.ui(|ui| {
-                                        egui::Grid::new(&image.filename)
-                                            .num_columns(2)
-                                            .spacing(egui::Vec2::new(4.0, 10.0))
-                                            .show(ui, |ui| {
-                                                ui.label("File:");
-                                                ui.label(&image.filename);
-                                                ui.end_row();
+                                            // TODO: better date/time widget
+                                            ui.label("Date: ");
+                                            ui.add(
+                                                egui::TextEdit::singleline(&mut image.date)
+                                                    .desired_width(f32::INFINITY),
+                                            );
+                                            ui.end_row();
+                                        });
+                                    }
 
-                                                match image.error {
-                                                    Some(ref e) => {
-                                                        ui.label("Error:");
-                                                        ui.wrapped_label(e);
-                                                        ui.end_row();
-                                                    }
-                                                    None => {
-                                                        ui.label("Camera:");
-                                                        ui.wrapped_label(&image.camera);
-                                                        ui.end_row();
-
-                                                        ui.label("Description: ");
-                                                        ui.add(
-                                                            egui::TextEdit::singleline(
-                                                                &mut image.description,
-                                                            )
-                                                            .desired_width(f32::INFINITY),
-                                                        );
-                                                        ui.end_row();
-
-                                                        ui.label("Date: ");
-                                                        ui.add(
-                                                            egui::TextEdit::singleline(&mut image.date)
-                                                                .desired_width(f32::INFINITY),
-                                                        );
-                                                        ui.end_row();
-                                                    }
-                                                }
-                                            });
-                                    });
-                                });
+                                    Err(error) => {
+                                        Self::add_left_image(
+                                            state,
+                                            tui,
+                                            egui::widgets::Image::new(assets::ERROR_IMG),
+                                        );
+                                        Self::add_right_grid(tui, infos_width, &error.filename, |ui| {
+                                            ui.label("Error:");
+                                            ui.wrapped_label(error.to_string());
+                                            ui.end_row();
+                                        });
+                                    }
+                                };
                             });
+
                             tui.separator();
                         }
                     });
