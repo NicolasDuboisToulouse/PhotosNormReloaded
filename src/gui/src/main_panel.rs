@@ -1,4 +1,5 @@
 mod image;
+mod logger;
 use crate::{assets, taffy_tools};
 use core::assets as core_assets;
 use eframe::egui;
@@ -16,6 +17,7 @@ use std::path::PathBuf;
 pub struct MainPanel {
     /// list of selected paths (result)
     images: Vec<image::ImageResult>,
+    show_logger: bool,
     // TODO: remove this hack
     initialized: bool,
 }
@@ -69,6 +71,7 @@ impl MainPanel {
 
         let panel = MainPanel {
             images,
+            show_logger: false,
             initialized: false,
         };
 
@@ -139,7 +142,14 @@ impl MainPanel {
 
 impl eframe::App for MainPanel {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if self.show_logger {
+            self.show_logger = logger::Logger::show(ctx);
+        }
+
         egui::CentralPanel::default().show(ctx, |ui| {
+            if self.show_logger {
+                ui.disable()
+            };
             let mut state = State::load(ctx, ui.id()).unwrap_or_else(|| {
                 let images_size = ui.available_height() / 4.0;
                 State {
@@ -177,6 +187,7 @@ impl eframe::App for MainPanel {
                             })
                             .clicked()
                         {
+                            self.show_logger = true;
                             println!("TODO: implement Save and fix all");
                         }
                     });
@@ -188,6 +199,7 @@ impl eframe::App for MainPanel {
                             })
                             .clicked()
                         {
+                            self.show_logger = true;
                             println!("TODO: implement Save");
                         }
                     });

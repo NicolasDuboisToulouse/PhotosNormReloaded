@@ -1317,9 +1317,9 @@ dependencies = [
 
 [[package]]
 name = "egui_taffy"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50ca9a4af814cfe3067f22332832b985e1db657e441abf9f85c9b780a9439059"
+checksum = "94e23a53666d41c52122a71f59db0310ba1e5e56202a21ab681158149e3cc298"
 dependencies = [
  "egui",
  "log",
@@ -3662,9 +3662,9 @@ dependencies = [
 
 [[package]]
 name = "taffy"
-version = "0.7.2"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5ee7dc8eeb09b5952509850485cf7e73b81af1a4cd5d71f2ee34ed2aa0c562a"
+checksum = "944a2a0b6070d217b69afb819f65f84ba093c43d627571fdac1c46f03a14d326"
 dependencies = [
  "arrayvec",
  "grid",
